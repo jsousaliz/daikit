@@ -24,6 +24,15 @@ object FormPrincipal: TFormPrincipal
     Anchors = [akLeft, akBottom]
     Caption = 'Log'
   end
+  object LabelUso: TLabel
+    Left = 619
+    Top = 341
+    Width = 5
+    Height = 15
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    Caption = '-'
+  end
   object ComboNivelLog: TComboBox
     Left = 48
     Top = 408
@@ -48,15 +57,6 @@ object FormPrincipal: TFormPrincipal
     Caption = 'Limpar log'
     TabOrder = 9
     OnClick = BotaoLimparLogClick
-  end
-  object LabelUso: TLabel
-    Left = 619
-    Top = 341
-    Width = 5
-    Height = 15
-    Alignment = taRightJustify
-    Anchors = [akTop, akRight]
-    Caption = '-'
   end
   object MemoConversa: TMemo
     Left = 16

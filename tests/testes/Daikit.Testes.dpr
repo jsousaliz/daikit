@@ -82,6 +82,7 @@ uses
   Daikit.Componentes.Provedor in '..\..\src\componentes\Daikit.Componentes.Provedor.pas',
   Daikit.Componentes.Provedores in '..\..\src\componentes\Daikit.Componentes.Provedores.pas',
   Daikit.Componentes.Conversa in '..\..\src\componentes\Daikit.Componentes.Conversa.pas',
+  Daikit.Componentes.OperacaoChat in '..\..\src\componentes\Daikit.Componentes.OperacaoChat.pas',
   Daikit.Componentes.Chat in '..\..\src\componentes\Daikit.Componentes.Chat.pas',
   Daikit.Testes.Instalador in 'Daikit.Testes.Instalador.pas',
   Daikit.Instalador.Servico in '..\..\tools\instalador\Daikit.Instalador.Servico.pas';

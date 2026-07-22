@@ -9,6 +9,7 @@ uses
   Daikit.Dominio.Interfaces,
   Daikit.Aplicacao.Interfaces,
   Daikit.Aplicacao.Log,
+  Daikit.Componentes.OperacaoChat,
   Daikit.Componentes.Chat;
 
 type
@@ -23,11 +24,17 @@ type
     FChatParaDestruir: TChatIA;
     FLogs: Integer;
     FUltimoLog: IEventoLogIA;
+    FUltimaResposta: IRespostaChatIA;
+    FUltimoErro: IErroChatIA;
+    FThreadResposta: Cardinal;
+    FThreadErro: Cardinal;
+    FThreadConclusao: Cardinal;
+    FThreadLog: Cardinal;
   public
     procedure AoIniciar(Sender: TObject);
     procedure AoResponder(Sender: TObject;
       const AResposta: IRespostaChatIA);
-    procedure AoErro(Sender: TObject; const AExcecao: Exception);
+    procedure AoErro(Sender: TObject; const AErro: IErroChatIA);
     procedure AoConcluir(Sender: TObject);
     procedure AoConcluirDestruindo(Sender: TObject);
     procedure AoLog(Sender: TObject; const AEvento: IEventoLogIA);
@@ -69,12 +76,17 @@ type
     [Test] procedure Chat_DevePermitirDestruicaoNoEventoConclusao;
     [Test] procedure Chat_DeveLimparReferenciasDeComponentesDestruidos;
     [Test] procedure Chat_DevePublicarLogDoProvedor;
+    [Test] procedure Chat_DeveRecusarSegundoEnvioEnquantoExecuta;
+    [Test] procedure Chat_DeveCancelarOperacaoEmAndamento;
+    [Test] procedure Chat_DestruicaoDuranteEnvioNaoDevePublicarCallbacks;
     [Test] procedure Componentes_DevemPreservarReferenciasNoDFM;
   end;
 
 implementation
 
 uses
+  Winapi.Windows,
+  System.Diagnostics,
   Daikit.Componentes.Constantes,
   Daikit.Componentes.Excecoes,
   Daikit.Componentes.Provedores,
@@ -113,6 +125,7 @@ end;
 procedure TObservadorChatIA.AoConcluir(Sender: TObject);
 begin
   Inc(FConclusoes);
+  FThreadConclusao := GetCurrentThreadId;
   FEstadoNaConclusao := TChatIA(Sender).Estado;
 end;
 
@@ -123,9 +136,11 @@ begin
   FChatParaDestruir := nil;
 end;
 procedure TObservadorChatIA.AoErro(Sender: TObject;
-  const AExcecao: Exception);
+  const AErro: IErroChatIA);
 begin
   Inc(FErros);
+  FThreadErro := GetCurrentThreadId;
+  FUltimoErro := AErro;
 end;
 
 procedure TObservadorChatIA.AoIniciar(Sender: TObject);
@@ -138,6 +153,7 @@ procedure TObservadorChatIA.AoLog(Sender: TObject;
   const AEvento: IEventoLogIA);
 begin
   Inc(FLogs);
+  FThreadLog := GetCurrentThreadId;
   FUltimoLog := AEvento;
 end;
 
@@ -145,7 +161,27 @@ procedure TObservadorChatIA.AoResponder(Sender: TObject;
   const AResposta: IRespostaChatIA);
 begin
   Inc(FRespostas);
+  FThreadResposta := GetCurrentThreadId;
   Assert.IsNotNull(AResposta);
+  FUltimaResposta := AResposta;
+end;
+
+procedure AguardarConclusao(AObservador: TObservadorChatIA;
+  AQuantidadeEsperada: Integer = 1);
+const
+  CTimeoutTesteMS = 5000;
+var
+  LCronometro: TStopwatch;
+begin
+  LCronometro := TStopwatch.StartNew;
+  while (AObservador.FConclusoes < AQuantidadeEsperada) and
+    (LCronometro.ElapsedMilliseconds < CTimeoutTesteMS) do
+  begin
+    CheckSynchronize(10);
+    TThread.Sleep(1);
+  end;
+  Assert.AreEqual(AQuantidadeEsperada, AObservador.FConclusoes,
+    'A operacao assincrona do chat nao foi concluida no tempo esperado.');
 end;
 
 class function TTestesComponentes.ComponenteComoTexto(
@@ -198,7 +234,9 @@ var
   LObservador: TObservadorChatIA;
   LProvedor: TProvedorIAFalso;
   LConversa: TConversaIA;
+  LThreadPrincipal: Cardinal;
 begin
+  LThreadPrincipal := GetCurrentThreadId;
   LChat := TChatIA.Create(nil);
   LObservador := TObservadorChatIA.Create;
   try
@@ -212,7 +250,12 @@ begin
     LChat.AoIniciarRequisicao := LObservador.AoIniciar;
     LChat.AoReceberResposta := LObservador.AoResponder;
     LChat.AoConcluir := LObservador.AoConcluir;
-    Assert.AreEqual('Eco: primeira', LChat.EnviarTexto('primeira'));
+    LChat.Enviar('primeira');
+    Assert.AreEqual(TEstadoChatIA.Executando, LChat.Estado);
+    Assert.AreEqual(0, LObservador.FConclusoes);
+    AguardarConclusao(LObservador);
+    Assert.AreEqual('Eco: primeira',
+      LObservador.FUltimaResposta.Mensagem.Texto);
     Assert.AreEqual(2, Integer(Length(LChat.ObterMensagens)));
     Assert.AreEqual('modelo-teste', LObjetoAdaptadorFalso.UltimaRequisicao.Modelo);
     Assert.AreEqual(TEstadoChatIA.Executando,
@@ -222,6 +265,8 @@ begin
     Assert.AreEqual(1, LObservador.FInicios);
     Assert.AreEqual(1, LObservador.FRespostas);
     Assert.AreEqual(1, LObservador.FConclusoes);
+    Assert.AreEqual(LThreadPrincipal, LObservador.FThreadResposta);
+    Assert.AreEqual(LThreadPrincipal, LObservador.FThreadConclusao);
   finally
     LObservador.Free;
     LChat.Free;
@@ -238,7 +283,9 @@ var
   LObservador: TObservadorChatIA;
   LProvedor: TProvedorOpenAI;
   LTransporteHTTP: ITransporteHTTP;
+  LThreadPrincipal: Cardinal;
 begin
+  LThreadPrincipal := GetCurrentThreadId;
   LChat := TChatIA.Create(nil);
   LProvedor := TProvedorOpenAI.Create(nil);
   LObservador := TObservadorChatIA.Create;
@@ -252,8 +299,10 @@ begin
     LChat.Provedor := LProvedor;
     LChat.Conversa := TConversaIA.Create(LChat);
     LChat.AoRegistrarLog := LObservador.AoLog;
+    LChat.AoConcluir := LObservador.AoConcluir;
 
-    LChat.EnviarTexto('pergunta que deve ficar visivel');
+    LChat.Enviar('pergunta que deve ficar visivel');
+    AguardarConclusao(LObservador);
 
     Assert.AreEqual(2, LObservador.FLogs);
     Assert.IsNotNull(LObservador.FUltimoLog);
@@ -263,6 +312,7 @@ begin
       'Ola do OpenAI'));
     Assert.IsFalse(LObservador.FUltimoLog.Mensagem.Contains(
       CChaveAPITeste));
+    Assert.AreEqual(LThreadPrincipal, LObservador.FThreadLog);
   finally
     LObservador.Free;
     LChat.Free;
@@ -296,22 +346,29 @@ end;
 procedure TTestesComponentes.Chat_DeveNotificarErroEConclusao;
 var
   LChat: TChatIA;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
+  LAdaptadorFalso: IAdaptadorIA;
   LObservador: TObservadorChatIA;
+  LThreadPrincipal: Cardinal;
 begin
+  LThreadPrincipal := GetCurrentThreadId;
   LChat := TChatIA.Create(nil);
   LObservador := TObservadorChatIA.Create;
   try
+    LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LObjetoAdaptadorFalso.RetornarNulo := True;
+    LAdaptadorFalso := LObjetoAdaptadorFalso;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
     LChat.Conversa := TConversaIA.Create(LChat);
     LChat.AoOcorrerErro := LObservador.AoErro;
     LChat.AoConcluir := LObservador.AoConcluir;
-    Assert.WillRaise(
-      TTestLocalMethod(procedure
-      begin
-        LChat.Enviar('sem provedor');
-      end),
-      EConfiguracaoComponenteIA);
+    LChat.Enviar('resposta nula');
+    AguardarConclusao(LObservador);
     Assert.AreEqual(1, LObservador.FErros);
     Assert.AreEqual(1, LObservador.FConclusoes);
+    Assert.IsNotNull(LObservador.FUltimoErro);
+    Assert.AreEqual('EValidacaoDominioIA', LObservador.FUltimoErro.Classe);
+    Assert.AreEqual(LThreadPrincipal, LObservador.FThreadErro);
     Assert.AreEqual(TEstadoChatIA.Ocioso, LChat.Estado);
   finally
     LObservador.Free;
@@ -354,6 +411,7 @@ begin
     LObservador.FChatParaDestruir := LChat;
     LChat.AoConcluir := LObservador.AoConcluirDestruindo;
     LChat.Enviar('mensagem');
+    AguardarConclusao(LObservador);
     Assert.IsNull(LObservador.FChatParaDestruir);
     Assert.AreEqual(1, LObservador.FConclusoes);
   finally
@@ -365,17 +423,109 @@ procedure TTestesComponentes.Chat_MensagemIsoladaNaoDeveAlterarHistorico;
 var
   LChat: TChatIA;
   LAdaptadorFalso: IAdaptadorIA;
+  LObservador: TObservadorChatIA;
 begin
   LChat := TChatIA.Create(nil);
+  LObservador := TObservadorChatIA.Create;
   try
     LAdaptadorFalso := TAdaptadorIAFalso.Create;
     LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
     LChat.Conversa := TConversaIA.Create(LChat);
     LChat.ModoConversa := TModoConversaIA.MensagemIsolada;
+    LChat.AoConcluir := LObservador.AoConcluir;
     LChat.Enviar('mensagem');
+    AguardarConclusao(LObservador);
     Assert.AreEqual(0, Integer(Length(LChat.ObterMensagens)));
   finally
+    LObservador.Free;
     LChat.Free;
+  end;
+end;
+
+procedure TTestesComponentes.Chat_DeveRecusarSegundoEnvioEnquantoExecuta;
+var
+  LChat: TChatIA;
+  LAdaptadorFalso: IAdaptadorIA;
+  LObservador: TObservadorChatIA;
+begin
+  LChat := TChatIA.Create(nil);
+  LObservador := TObservadorChatIA.Create;
+  try
+    LAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LChat.Conversa := TConversaIA.Create(LChat);
+    LChat.AoConcluir := LObservador.AoConcluir;
+    LChat.Enviar('primeira');
+    Assert.WillRaise(
+      TTestLocalMethod(procedure
+      begin
+        LChat.Enviar('segunda');
+      end), EEstadoComponenteIA);
+    AguardarConclusao(LObservador);
+  finally
+    LObservador.Free;
+    LChat.Free;
+  end;
+end;
+
+procedure TTestesComponentes.Chat_DeveCancelarOperacaoEmAndamento;
+var
+  LChat: TChatIA;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
+  LAdaptadorFalso: IAdaptadorIA;
+  LObservador: TObservadorChatIA;
+begin
+  LChat := TChatIA.Create(nil);
+  LObservador := TObservadorChatIA.Create;
+  try
+    LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LObjetoAdaptadorFalso.AtrasoMS := 500;
+    LAdaptadorFalso := LObjetoAdaptadorFalso;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LChat.Conversa := TConversaIA.Create(LChat);
+    LChat.AoOcorrerErro := LObservador.AoErro;
+    LChat.AoConcluir := LObservador.AoConcluir;
+    LChat.Enviar('cancelar');
+    LChat.Cancelar;
+    Assert.AreEqual(TEstadoChatIA.Cancelando, LChat.Estado);
+    AguardarConclusao(LObservador);
+    Assert.AreEqual(1, LObservador.FErros);
+    Assert.AreEqual('EOperacaoCanceladaIA', LObservador.FUltimoErro.Classe);
+    Assert.AreEqual(TEstadoChatIA.Ocioso, LChat.Estado);
+  finally
+    LObservador.Free;
+    LChat.Free;
+  end;
+end;
+
+procedure TTestesComponentes.Chat_DestruicaoDuranteEnvioNaoDevePublicarCallbacks;
+var
+  LChat: TChatIA;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
+  LAdaptadorFalso: IAdaptadorIA;
+  LObservador: TObservadorChatIA;
+begin
+  LChat := TChatIA.Create(nil);
+  LObservador := TObservadorChatIA.Create;
+  try
+    LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LObjetoAdaptadorFalso.AtrasoMS := 500;
+    LAdaptadorFalso := LObjetoAdaptadorFalso;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LChat.Conversa := TConversaIA.Create(LChat);
+    LChat.AoReceberResposta := LObservador.AoResponder;
+    LChat.AoOcorrerErro := LObservador.AoErro;
+    LChat.AoConcluir := LObservador.AoConcluir;
+    LChat.Enviar('destruir');
+    LChat.Free;
+    LChat := nil;
+    CheckSynchronize(20);
+    Assert.AreEqual(0, LObservador.FRespostas);
+    Assert.AreEqual(0, LObservador.FErros);
+    Assert.AreEqual(0, LObservador.FConclusoes);
+  finally
+    LChat.Free;
+    LObservador.Free;
   end;
 end;
 
@@ -638,9 +788,9 @@ begin
 end;
 
 initialization
-  RegisterClass(TDataModule);
-  RegisterClasses([TProvedorOpenAI, TProvedorAnthropic, TProvedorGemini,
-    TConversaIA, TChatIA]);
+  System.Classes.RegisterClass(TDataModule);
+  System.Classes.RegisterClasses([TProvedorOpenAI, TProvedorAnthropic,
+    TProvedorGemini, TConversaIA, TChatIA]);
   TDUnitX.RegisterTestFixture(TTestesComponentes);
 
 end.

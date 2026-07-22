@@ -42,22 +42,42 @@ procedure TArmazenamentoContextoIA.Adicionar(
 begin
   if AMensagem = nil then
     raise EValidacaoDominioIA.Create('A mensagem armazenada nao pode ser nula.');
-  FMensagens.Add(AMensagem);
+  TMonitor.Enter(Self);
+  try
+    FMensagens.Add(AMensagem);
+  finally
+    TMonitor.Exit(Self);
+  end;
 end;
 
 procedure TArmazenamentoContextoIA.Limpar;
 begin
-  FMensagens.Clear;
+  TMonitor.Enter(Self);
+  try
+    FMensagens.Clear;
+  finally
+    TMonitor.Exit(Self);
+  end;
 end;
 
 function TArmazenamentoContextoIA.ObterInstantaneo: TArray<IMensagemIA>;
 begin
-  Result := FMensagens.ToArray;
+  TMonitor.Enter(Self);
+  try
+    Result := FMensagens.ToArray;
+  finally
+    TMonitor.Exit(Self);
+  end;
 end;
 
 function TArmazenamentoContextoIA.ObterQuantidade: Integer;
 begin
-  Result := FMensagens.Count;
+  TMonitor.Enter(Self);
+  try
+    Result := FMensagens.Count;
+  finally
+    TMonitor.Exit(Self);
+  end;
 end;
 
 end.

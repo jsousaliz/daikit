@@ -13,6 +13,7 @@ type
     FUltimaRequisicao: IRequisicaoChatIA;
     FQuantidadeChamadas: Integer;
     FRetornarNulo: Boolean;
+    FAtrasoMS: Integer;
   public
     constructor Create(const APrefixoResposta: string = 'Resposta: ');
     function ObterCapacidades: ICapacidadesAdaptadorIA;
@@ -21,11 +22,13 @@ type
     property UltimaRequisicao: IRequisicaoChatIA read FUltimaRequisicao;
     property QuantidadeChamadas: Integer read FQuantidadeChamadas;
     property RetornarNulo: Boolean read FRetornarNulo write FRetornarNulo;
+    property AtrasoMS: Integer read FAtrasoMS write FAtrasoMS;
   end;
 
 implementation
 
 uses
+  System.Classes,
   Daikit.Aplicacao.CapacidadesAdaptador,
   Daikit.Testes.Constantes,
   Daikit.Dominio.Excecoes,
@@ -46,6 +49,7 @@ end;
 function TAdaptadorIAFalso.Concluir(const ARequisicao: IRequisicaoChatIA;
   const ACancelamento: ITokenCancelamentoIA): IRespostaChatIA;
 var
+  LDecorridoMS: Integer;
   LMensagens: TArray<IMensagemIA>;
   LMensagem: IMensagemIA;
   LUso: IUsoIA;
@@ -54,6 +58,16 @@ begin
     raise EValidacaoDominioIA.Create('A requisicao do provedor falso deve ser informada.');
   if (ACancelamento <> nil) and ACancelamento.FoiCancelado then
     raise EOperacaoCanceladaIA.Create('A operacao foi cancelada no provedor falso.');
+
+  LDecorridoMS := 0;
+  while LDecorridoMS < FAtrasoMS do
+  begin
+    TThread.Sleep(10);
+    Inc(LDecorridoMS, 10);
+    if (ACancelamento <> nil) and ACancelamento.FoiCancelado then
+      raise EOperacaoCanceladaIA.Create(
+        'A operacao foi cancelada no provedor falso.');
+  end;
 
   Inc(FQuantidadeChamadas);
   FUltimaRequisicao := ARequisicao;

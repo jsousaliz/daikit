@@ -63,13 +63,13 @@ Configure `ChatIA.Conversa` e selecione o provedor:
 
 ```pascal
 ChatIA.Provedor := ProvedorOpenAI;
-Resposta := ChatIA.EnviarTexto('Quem é você?');
+ChatIA.Enviar('Quem é você?');
 
 ChatIA.Provedor := ProvedorAnthropic;
-Resposta := ChatIA.EnviarTexto('Continue a conversa.');
+ChatIA.Enviar('Continue a conversa.');
 ```
 
-O envio atual é síncrono. Em aplicações visuais, execute chamadas potencialmente demoradas sem bloquear a interface.
+`Enviar` inicia uma operação assíncrona e retorna imediatamente, sem bloquear a VCL. Use `AoReceberResposta`, `AoOcorrerErro` e `AoConcluir` para acompanhar o resultado. `Cancelar` solicita o cancelamento da operação atual.
 
 ## Credenciais
 

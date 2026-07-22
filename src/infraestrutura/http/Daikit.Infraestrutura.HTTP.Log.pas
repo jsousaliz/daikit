@@ -93,9 +93,12 @@ end;
 
 procedure TTransporteHTTPComLog.Publicar(ATipo: TTipoEventoLogIA;
   ANivel: TNivelLogIA; const AMensagem: string; AStatusHTTP: Integer);
+var
+  LEventoLog: IEventoLogIA;
 begin
-  FReceptorLog.Registrar(TEventoLogIA.Create(ATipo, ANivel, FNomeProvedor,
-    AMensagem, AStatusHTTP));
+  LEventoLog := TEventoLogIA.Create(ATipo, ANivel, FNomeProvedor,
+    AMensagem, AStatusHTTP);
+  FReceptorLog.Registrar(LEventoLog);
 end;
 
 function TTransporteHTTPComLog.Sanitizar(const AJSON: string): string;

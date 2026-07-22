@@ -11,7 +11,7 @@
   <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
     <Base>true</Base>
     <DCC_Namespace>System;Winapi;$(DCC_Namespace)</DCC_Namespace>
-    <DCC_UnitSearchPath>..\..\src\nucleo\dominio;..\..\src\nucleo\aplicacao;..\..\src\infraestrutura\http;..\..\src\infraestrutura\json;..\..\src\adaptadores\openai;..\..\src\adaptadores\anthropic;..\..\src\adaptadores\gemini;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_UnitSearchPath>..\..\src\nucleo\dominio;..\..\src\nucleo\aplicacao;..\..\src\infraestrutura\http;..\..\src\infraestrutura\json;..\..\src\adaptadores;..\..\src\adaptadores\openai;..\..\src\adaptadores\anthropic;..\..\src\adaptadores\gemini;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
     <DCC_ExeOutput>..\bin\$(Platform)\experiments</DCC_ExeOutput>
     <DCC_DcuOutput>..\bin\$(Platform)\experiments\dcu\$(SanitizedProjectName)\$(Config)</DCC_DcuOutput>
     <DCC_ForceExecute>false</DCC_ForceExecute>

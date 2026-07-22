@@ -84,16 +84,16 @@ Em tempo de design, coloque `TChatIA`, um `TConversaIA` e os provedores desejado
 
 ```pascal
 ChatIA.Provedor := ProvedorOpenAI;
-Resposta := ChatIA.EnviarTexto('Quem é você?');
+ChatIA.Enviar('Quem é você?');
 
 ChatIA.Provedor := ProvedorAnthropic;
-Resposta := ChatIA.EnviarTexto('Continue a conversa.');
+ChatIA.Enviar('Continue a conversa.');
 ```
 
 Os eventos de `TConversaIA` são disparados após a operação ser concluída com sucesso. `AoAdicionar` recebe a mensagem incluída; `AoLimpar` ocorre somente quando havia conteúdo; e `AoAlterar` sinaliza qualquer mudança efetiva no contexto. Nos eventos específicos, `AoAlterar` é chamado em seguida.
 O padrão é `ModoConversa = ManterHistorico`. Use `MensagemIsolada` para não adicionar mensagens ao histórico e `LimparHistorico` para iniciar uma conversa nova.
 
-O método `Enviar` é síncrono. Em aplicações visuais ele deve ser usado conscientemente para não bloquear a interface. Operações assíncronas e streaming ainda não estão implementados.
+O método `Enviar` inicia a operação em uma thread de trabalho e retorna imediatamente. A resposta é entregue em `AoReceberResposta`, falhas da operação em `AoOcorrerErro` e o encerramento em `AoConcluir`. Esses eventos, assim como `AoRegistrarLog`, são entregues na thread principal e podem atualizar controles VCL diretamente. Use `Cancelar` para solicitar o cancelamento da operação atual. Um segundo envio é recusado enquanto `Estado` for `Executando` ou `Cancelando`.
 
 ## Log
 
@@ -125,7 +125,7 @@ end;
 
 Credenciais, cookies, senhas, tokens, segredos, assinaturas e raciocínio opaco são removidos automaticamente. O conteúdo da conversa é preservado para permitir a inspeção da troca com o provedor, portanto pode conter dados pessoais ou confidenciais.
 
-Os callbacks são síncronos e ocorrem na thread chamadora. O Daikit não grava logs em arquivo, DFM, Registro ou banco. Exceções lançadas pelo código do evento não são ocultadas e podem interromper a operação.
+Os callbacks de log são enfileirados para a thread principal. O Daikit não grava logs em arquivo, DFM, Registro ou banco. Exceções lançadas pelo código do evento não são ocultadas.
 
 ## Exemplo VCL
 
