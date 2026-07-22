@@ -8,14 +8,14 @@ uses
 type
   TContextoIA = class(TInterfacedObject, IContextoIA)
   private
-    FArmazenamento: IArmazenamentoContextoIA;
+    FArmazenamentoContexto: IArmazenamentoContextoIA;
     function ObterQuantidade: Integer;
   public
     constructor Create(const AArmazenamento: IArmazenamentoContextoIA);
     procedure Adicionar(const AMensagem: IMensagemIA);
-    function AdicionarSistema(const ATexto: string): IMensagemIA;
-    function AdicionarUsuario(const ATexto: string): IMensagemIA;
-    function AdicionarAssistente(const ATexto: string): IMensagemIA;
+    function AdicionarMensagemSistema(const ATexto: string): IMensagemIA;
+    function AdicionarMensagemUsuario(const ATexto: string): IMensagemIA;
+    function AdicionarMensagemAssistente(const ATexto: string): IMensagemIA;
     function ObterMensagens: TArray<IMensagemIA>;
     procedure Limpar;
   end;
@@ -32,27 +32,30 @@ begin
   inherited Create;
   if AArmazenamento = nil then
     raise EValidacaoDominioIA.Create('O armazenamento do contexto de IA deve ser informado.');
-  FArmazenamento := AArmazenamento;
+  FArmazenamentoContexto := AArmazenamento;
 end;
 
 procedure TContextoIA.Adicionar(const AMensagem: IMensagemIA);
 begin
-  FArmazenamento.Adicionar(AMensagem);
+  FArmazenamentoContexto.Adicionar(AMensagem);
 end;
 
-function TContextoIA.AdicionarAssistente(const ATexto: string): IMensagemIA;
+function TContextoIA.AdicionarMensagemAssistente(
+  const ATexto: string): IMensagemIA;
 begin
   Result := TMensagemIA.CriarTexto(TPapelMensagemIA.Assistente, ATexto);
   Adicionar(Result);
 end;
 
-function TContextoIA.AdicionarSistema(const ATexto: string): IMensagemIA;
+function TContextoIA.AdicionarMensagemSistema(
+  const ATexto: string): IMensagemIA;
 begin
   Result := TMensagemIA.CriarTexto(TPapelMensagemIA.Sistema, ATexto);
   Adicionar(Result);
 end;
 
-function TContextoIA.AdicionarUsuario(const ATexto: string): IMensagemIA;
+function TContextoIA.AdicionarMensagemUsuario(
+  const ATexto: string): IMensagemIA;
 begin
   Result := TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario, ATexto);
   Adicionar(Result);
@@ -60,17 +63,17 @@ end;
 
 procedure TContextoIA.Limpar;
 begin
-  FArmazenamento.Limpar;
+  FArmazenamentoContexto.Limpar;
 end;
 
 function TContextoIA.ObterMensagens: TArray<IMensagemIA>;
 begin
-  Result := FArmazenamento.ObterInstantaneo;
+  Result := FArmazenamentoContexto.ObterInstantaneo;
 end;
 
 function TContextoIA.ObterQuantidade: Integer;
 begin
-  Result := FArmazenamento.Quantidade;
+  Result := FArmazenamentoContexto.Quantidade;
 end;
 
 end.

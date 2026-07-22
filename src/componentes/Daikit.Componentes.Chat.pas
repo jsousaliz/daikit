@@ -25,12 +25,10 @@ type
   private
     FProvedor: TProvedorIA;
     FConversa: TConversaIA;
-    FContextoInterno: IContextoIA;
-    FAdaptadorInjetado: IAdaptadorIA;
     FModelo: string;
     FModoConversa: TModoConversaIA;
     FEstado: TEstadoChatIA;
-    FCancelamento: ITokenCancelamentoIA;
+    FTokenCancelamento: ITokenCancelamentoIA;
     FAoIniciarRequisicao: TEventoChatIA;
     FAoReceberResposta: TEventoRespostaChatIA;
     FAoOcorrerErro: TEventoErroChatIA;
@@ -53,8 +51,6 @@ type
     procedure Cancelar;
     procedure LimparHistorico;
     function ObterMensagens: TArray<IMensagemIA>;
-    procedure DefinirAdaptadorInjetado(
-      const AAdaptador: IAdaptadorIA);
     property Estado: TEstadoChatIA read FEstado;
   published
     property Provedor: TProvedorIA read FProvedor write DefinirProvedor;
@@ -76,8 +72,6 @@ type
 implementation
 
 uses
-  Daikit.Dominio.ArmazenamentoContexto,
-  Daikit.Dominio.Contexto,
   Daikit.Aplicacao.TokenCancelamento,
   Daikit.Aplicacao.ServicoContexto,
   Daikit.Componentes.Excecoes;
@@ -103,32 +97,25 @@ begin
 end;
 
 constructor TChatIA.Create(AOwner: TComponent);
-var
-  LArmazenamento: IArmazenamentoContextoIA;
 begin
   inherited;
   FEstado := TEstadoChatIA.Ocioso;
   FModoConversa := TModoConversaIA.ManterHistorico;
-  LArmazenamento := TArmazenamentoContextoIA.Create;
-  FContextoInterno := TContextoIA.Create(
-    LArmazenamento);
 end;
 
 destructor TChatIA.Destroy;
 begin
   Cancelar;
-  FCancelamento := nil;
-  FAdaptadorInjetado := nil;
-  FContextoInterno := nil;
+  FTokenCancelamento := nil;
   inherited;
 end;
 
 procedure TChatIA.Cancelar;
 begin
-  if FCancelamento <> nil then
+  if FTokenCancelamento <> nil then
   begin
     FEstado := TEstadoChatIA.Cancelando;
-    FCancelamento.Cancelar;
+    FTokenCancelamento.Cancelar;
   end;
 end;
 
@@ -150,45 +137,38 @@ begin
   if FProvedor <> nil then
     FProvedor.RemoveFreeNotification(Self);
   FProvedor := AValor;
-  FAdaptadorInjetado := nil;
   if FProvedor <> nil then
     FProvedor.FreeNotification(Self);
 end;
 
-procedure TChatIA.DefinirAdaptadorInjetado(
-  const AAdaptador: IAdaptadorIA);
-begin
-  if FProvedor <> nil then
-    FProvedor.RemoveFreeNotification(Self);
-  FProvedor := nil;
-  FAdaptadorInjetado := AAdaptador;
-end;
-
 function TChatIA.CriarReceptorLog: IReceptorLogIA;
 begin
-  Result := TReceptorLogChat.Create(Self);
+  if Assigned(FAoRegistrarLog) then
+    Result := TReceptorLogChat.Create(Self)
+  else
+    Result := nil;
 end;
 
 function TChatIA.Enviar(const ATexto: string): IRespostaChatIA;
 var
-  LServico: TServicoContextoIA;
+  LServicoContexto: TServicoContextoIA;
 begin
   if FEstado <> TEstadoChatIA.Ocioso then
     raise EEstadoComponenteIA.Create(
       'O componente de chat ja possui uma operacao em andamento.');
   FEstado := TEstadoChatIA.Executando;
-  FCancelamento := TTokenCancelamentoIA.Create;
+  FTokenCancelamento := TTokenCancelamentoIA.Create;
   try
     try
       if Assigned(FAoIniciarRequisicao) then
         FAoIniciarRequisicao(Self);
-      LServico := TServicoContextoIA.Create(ObterAdaptadorAtual,
+      LServicoContexto := TServicoContextoIA.Create(ObterAdaptadorAtual,
         ObterContextoAtual);
       try
-        Result := LServico.Enviar(FModelo, ATexto, FModoConversa,
-          FCancelamento);
+        Result := LServicoContexto.Enviar(FModelo, ATexto, FModoConversa,
+          FTokenCancelamento);
       finally
-        LServico.Free;
+        LServicoContexto.Free;
       end;
       if Assigned(FAoReceberResposta) then
         FAoReceberResposta(Self, Result);
@@ -201,7 +181,7 @@ begin
       end;
     end;
   finally
-    FCancelamento := nil;
+    FTokenCancelamento := nil;
     FEstado := TEstadoChatIA.Ocioso;
     if Assigned(FAoConcluir) then
       FAoConcluir(Self);
@@ -210,10 +190,10 @@ end;
 
 function TChatIA.EnviarTexto(const ATexto: string): string;
 var
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LResposta := Enviar(ATexto);
-  Result := LResposta.Mensagem.Texto;
+  LRespostaChat := Enviar(ATexto);
+  Result := LRespostaChat.Mensagem.Texto;
 end;
 
 procedure TChatIA.LimparHistorico;
@@ -236,10 +216,10 @@ end;
 
 function TChatIA.ObterContextoAtual: IContextoIA;
 begin
-  if FConversa <> nil then
-    Result := FConversa.ObterContexto
-  else
-    Result := FContextoInterno;
+  if FConversa = nil then
+    raise EConfiguracaoComponenteIA.Create(
+      'O componente de conversa deve ser informado no chat.');
+  Result := FConversa.ObterContexto;
 end;
 
 function TChatIA.ObterMensagens: TArray<IMensagemIA>;
@@ -249,8 +229,6 @@ end;
 
 function TChatIA.ObterAdaptadorAtual: IAdaptadorIA;
 begin
-  if FAdaptadorInjetado <> nil then
-    Exit(FAdaptadorInjetado);
   if FProvedor = nil then
     raise EConfiguracaoComponenteIA.Create(
       'O provedor do componente de chat deve ser informado.');

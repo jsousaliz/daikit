@@ -27,6 +27,7 @@ uses
   Daikit.Testes.Fixtures.Anthropic in 'fixtures\Daikit.Testes.Fixtures.Anthropic.pas',
   Daikit.Testes.Fixtures.Gemini in 'fixtures\Daikit.Testes.Fixtures.Gemini.pas',
   Daikit.Testes.AdaptadorFalso in 'mock\Daikit.Testes.AdaptadorFalso.pas',
+  Daikit.Testes.ProvedorFalso in 'mock\Daikit.Testes.ProvedorFalso.pas',
   Daikit.Testes.TransporteHTTPFalso in 'mock\Daikit.Testes.TransporteHTTPFalso.pas',
   Daikit.Dominio.Interfaces in '..\..\src\nucleo\dominio\Daikit.Dominio.Interfaces.pas',
   Daikit.Dominio.Excecoes in '..\..\src\nucleo\dominio\Daikit.Dominio.Excecoes.pas',

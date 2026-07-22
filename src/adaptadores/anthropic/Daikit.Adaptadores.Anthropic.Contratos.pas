@@ -94,20 +94,20 @@ implementation
 
 destructor TRequisicaoMensagensAnthropic.Destroy;
 var
-  LMensagem: TMensagemEntradaAnthropic;
+  LMensagemEntradaAnthropic: TMensagemEntradaAnthropic;
 begin
-  for LMensagem in FMensagens do
-    LMensagem.Free;
+  for LMensagemEntradaAnthropic in FMensagens do
+    LMensagemEntradaAnthropic.Free;
   FMensagens := nil;
   inherited;
 end;
 
 destructor TRespostaAnthropic.Destroy;
 var
-  LConteudo: TConteudoSaidaAnthropic;
+  LConteudoSaidaAnthropic: TConteudoSaidaAnthropic;
 begin
-  for LConteudo in FConteudo do
-    LConteudo.Free;
+  for LConteudoSaidaAnthropic in FConteudo do
+    LConteudoSaidaAnthropic.Free;
   FConteudo := nil;
   FUso.Free;
   inherited;

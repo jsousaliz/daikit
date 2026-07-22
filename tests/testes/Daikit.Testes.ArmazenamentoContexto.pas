@@ -27,45 +27,45 @@ uses
 
 procedure TTestesArmazenamentoContextoIA.Armazenamento_DeveAdicionarObterELimpar;
 var
-  LArmazenamento: IArmazenamentoContextoIA;
+  LArmazenamentoContexto: IArmazenamentoContextoIA;
   LMensagens: TArray<IMensagemIA>;
 begin
-  LArmazenamento := TArmazenamentoContextoIA.Create;
-  Assert.AreEqual(0, LArmazenamento.Quantidade);
+  LArmazenamentoContexto := TArmazenamentoContextoIA.Create;
+  Assert.AreEqual(0, LArmazenamentoContexto.Quantidade);
 
-  LArmazenamento.Adicionar(
+  LArmazenamentoContexto.Adicionar(
     TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario, 'ola'));
-  LMensagens := LArmazenamento.ObterInstantaneo;
-  Assert.AreEqual(1, LArmazenamento.Quantidade);
+  LMensagens := LArmazenamentoContexto.ObterInstantaneo;
+  Assert.AreEqual(1, LArmazenamentoContexto.Quantidade);
   Assert.AreEqual('ola', LMensagens[0].Texto);
 
-  LArmazenamento.Limpar;
-  Assert.AreEqual(0, LArmazenamento.Quantidade);
+  LArmazenamentoContexto.Limpar;
+  Assert.AreEqual(0, LArmazenamentoContexto.Quantidade);
 end;
 
 procedure TTestesArmazenamentoContextoIA.Armazenamento_DeveProtegerColecaoInterna;
 var
-  LArmazenamento: IArmazenamentoContextoIA;
+  LArmazenamentoContexto: IArmazenamentoContextoIA;
   LMensagens: TArray<IMensagemIA>;
 begin
-  LArmazenamento := TArmazenamentoContextoIA.Create;
-  LArmazenamento.Adicionar(
+  LArmazenamentoContexto := TArmazenamentoContextoIA.Create;
+  LArmazenamentoContexto.Adicionar(
     TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario, 'ola'));
-  LMensagens := LArmazenamento.ObterInstantaneo;
+  LMensagens := LArmazenamentoContexto.ObterInstantaneo;
   LMensagens[0] := nil;
 
-  Assert.AreEqual('ola', LArmazenamento.ObterInstantaneo[0].Texto);
+  Assert.AreEqual('ola', LArmazenamentoContexto.ObterInstantaneo[0].Texto);
 end;
 
 procedure TTestesArmazenamentoContextoIA.Armazenamento_NaoDeveAceitarMensagemNula;
 var
-  LArmazenamento: IArmazenamentoContextoIA;
+  LArmazenamentoContexto: IArmazenamentoContextoIA;
 begin
-  LArmazenamento := TArmazenamentoContextoIA.Create;
+  LArmazenamentoContexto := TArmazenamentoContextoIA.Create;
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      LArmazenamento.Adicionar(nil);
+      LArmazenamentoContexto.Adicionar(nil);
     end),
     EValidacaoDominioIA);
 end;
@@ -76,9 +76,9 @@ var
   LMensagens: TArray<IMensagemIA>;
 begin
   LContexto := TContextoIA.Create(TArmazenamentoContextoIA.Create);
-  LContexto.AdicionarSistema('instrucao');
-  LContexto.AdicionarUsuario('pergunta');
-  LContexto.AdicionarAssistente('resposta');
+  LContexto.AdicionarMensagemSistema('instrucao');
+  LContexto.AdicionarMensagemUsuario('pergunta');
+  LContexto.AdicionarMensagemAssistente('resposta');
   LMensagens := LContexto.ObterMensagens;
 
   Assert.AreEqual(3, LContexto.Quantidade);

@@ -7,12 +7,23 @@ uses
   Daikit.Infraestrutura.HTTP.Interfaces;
 
 type
+  TOpcoesRequisicaoHTTP = record
+    Metodo: TMetodoHTTP;
+    URL: string;
+    Cabecalhos: TArray<TCabecalhoHTTP>;
+    Corpo: string;
+    TimeoutConexaoMS: Integer;
+    TimeoutRespostaMS: Integer;
+    LimiteRespostaBytes: Int64;
+    class function Padrao: TOpcoesRequisicaoHTTP; static;
+  end;
+
   TRequisicaoHTTP = class(TInterfacedObject, IRequisicaoHTTP)
   private
-    FMetodo: TMetodoHTTP;
+    FMetodoHTTP: TMetodoHTTP;
     FURL: string;
-    FCabecalhos: TArray<TCabecalhoHTTP>;
-    FCorpo: string;
+    FCabecalhosHTTP: TArray<TCabecalhoHTTP>;
+    FCorpoHTTP: string;
     FTimeoutConexaoMS: Integer;
     FTimeoutRespostaMS: Integer;
     FLimiteRespostaBytes: Int64;
@@ -24,19 +35,15 @@ type
     function ObterTimeoutRespostaMS: Integer;
     function ObterLimiteRespostaBytes: Int64;
   public
-    constructor Create(AMetodo: TMetodoHTTP; const AURL: string;
-      const ACabecalhos: TArray<TCabecalhoHTTP>; const ACorpo: string = '';
-      ATimeoutConexaoMS: Integer = CTimeoutConexaoPadraoMS;
-      ATimeoutRespostaMS: Integer = CTimeoutRespostaPadraoMS;
-      ALimiteRespostaBytes: Int64 = CLimiteRespostaPadraoBytes);
+    constructor Create(const AOpcoes: TOpcoesRequisicaoHTTP);
   end;
 
   TRespostaHTTP = class(TInterfacedObject, IRespostaHTTP)
   private
-    FStatus: Integer;
-    FMotivo: string;
-    FCabecalhos: TArray<TCabecalhoHTTP>;
-    FCorpo: string;
+    FStatusHTTP: Integer;
+    FMotivoHTTP: string;
+    FCabecalhosHTTP: TArray<TCabecalhoHTTP>;
+    FCorpoHTTP: string;
     function ObterStatus: Integer;
     function ObterMotivo: string;
     function ObterCabecalhos: TArray<TCabecalhoHTTP>;
@@ -97,43 +104,52 @@ end;
 
 { TRequisicaoHTTP }
 
-constructor TRequisicaoHTTP.Create(AMetodo: TMetodoHTTP; const AURL: string;
-  const ACabecalhos: TArray<TCabecalhoHTTP>; const ACorpo: string;
-  ATimeoutConexaoMS, ATimeoutRespostaMS: Integer;
-  ALimiteRespostaBytes: Int64);
+class function TOpcoesRequisicaoHTTP.Padrao: TOpcoesRequisicaoHTTP;
+begin
+  Result.Metodo := TMetodoHTTP.Get;
+  Result.URL := '';
+  Result.Cabecalhos := nil;
+  Result.Corpo := '';
+  Result.TimeoutConexaoMS := CTimeoutConexaoPadraoMS;
+  Result.TimeoutRespostaMS := CTimeoutRespostaPadraoMS;
+  Result.LimiteRespostaBytes := CLimiteRespostaPadraoBytes;
+end;
+
+constructor TRequisicaoHTTP.Create(const AOpcoes: TOpcoesRequisicaoHTTP);
 begin
   inherited Create;
-  if Trim(AURL) = '' then
+  if Trim(AOpcoes.URL) = '' then
     raise EValidacaoHTTP.Create('A URL da requisicao deve ser informada.');
-  if Length(AURL) > CLimiteURLCaracteres then
+  if Length(AOpcoes.URL) > CLimiteURLCaracteres then
     raise EValidacaoHTTP.Create('A URL da requisicao excede o limite permitido.');
-  ValidarURL(AURL);
-  if TEncoding.UTF8.GetByteCount(ACorpo) > CLimiteCorpoRequisicaoBytes then
+  ValidarURL(AOpcoes.URL);
+  if TEncoding.UTF8.GetByteCount(AOpcoes.Corpo) >
+    CLimiteCorpoRequisicaoBytes then
     raise EValidacaoHTTP.Create('O corpo da requisicao excede o limite permitido.');
-  if ATimeoutConexaoMS <= 0 then
+  if AOpcoes.TimeoutConexaoMS <= 0 then
     raise EValidacaoHTTP.Create('O timeout de conexao deve ser maior que zero.');
-  if ATimeoutRespostaMS <= 0 then
+  if AOpcoes.TimeoutRespostaMS <= 0 then
     raise EValidacaoHTTP.Create('O timeout de resposta deve ser maior que zero.');
-  if ALimiteRespostaBytes <= 0 then
+  if AOpcoes.LimiteRespostaBytes <= 0 then
     raise EValidacaoHTTP.Create('O limite da resposta deve ser maior que zero.');
 
-  FMetodo := AMetodo;
-  FURL := AURL;
-  CopiarEValidarCabecalhos(ACabecalhos, FCabecalhos);
-  FCorpo := ACorpo;
-  FTimeoutConexaoMS := ATimeoutConexaoMS;
-  FTimeoutRespostaMS := ATimeoutRespostaMS;
-  FLimiteRespostaBytes := ALimiteRespostaBytes;
+  FMetodoHTTP := AOpcoes.Metodo;
+  FURL := AOpcoes.URL;
+  CopiarEValidarCabecalhos(AOpcoes.Cabecalhos, FCabecalhosHTTP);
+  FCorpoHTTP := AOpcoes.Corpo;
+  FTimeoutConexaoMS := AOpcoes.TimeoutConexaoMS;
+  FTimeoutRespostaMS := AOpcoes.TimeoutRespostaMS;
+  FLimiteRespostaBytes := AOpcoes.LimiteRespostaBytes;
 end;
 
 function TRequisicaoHTTP.ObterCabecalhos: TArray<TCabecalhoHTTP>;
 begin
-  Result := Copy(FCabecalhos);
+  Result := Copy(FCabecalhosHTTP);
 end;
 
 function TRequisicaoHTTP.ObterCorpo: string;
 begin
-  Result := FCorpo;
+  Result := FCorpoHTTP;
 end;
 
 function TRequisicaoHTTP.ObterLimiteRespostaBytes: Int64;
@@ -143,7 +159,7 @@ end;
 
 function TRequisicaoHTTP.ObterMetodo: TMetodoHTTP;
 begin
-  Result := FMetodo;
+  Result := FMetodoHTTP;
 end;
 
 function TRequisicaoHTTP.ObterTimeoutConexaoMS: Integer;
@@ -169,36 +185,36 @@ begin
   inherited Create;
   if (AStatus < CStatusHTTPMinimo) or (AStatus > CStatusHTTPMaximo) then
     raise EValidacaoHTTP.Create('O status HTTP informado e invalido.');
-  FStatus := AStatus;
-  FMotivo := AMotivo;
-  CopiarEValidarCabecalhos(ACabecalhos, FCabecalhos);
-  FCorpo := ACorpo;
+  FStatusHTTP := AStatus;
+  FMotivoHTTP := AMotivo;
+  CopiarEValidarCabecalhos(ACabecalhos, FCabecalhosHTTP);
+  FCorpoHTTP := ACorpo;
 end;
 
 function TRespostaHTTP.ObterCabecalhos: TArray<TCabecalhoHTTP>;
 begin
-  Result := Copy(FCabecalhos);
+  Result := Copy(FCabecalhosHTTP);
 end;
 
 function TRespostaHTTP.ObterCorpo: string;
 begin
-  Result := FCorpo;
+  Result := FCorpoHTTP;
 end;
 
 function TRespostaHTTP.ObterFoiSucesso: Boolean;
 begin
-  Result := (FStatus >= CStatusHTTPSucessoMinimo) and
-    (FStatus <= CStatusHTTPSucessoMaximo);
+  Result := (FStatusHTTP >= CStatusHTTPSucessoMinimo) and
+    (FStatusHTTP <= CStatusHTTPSucessoMaximo);
 end;
 
 function TRespostaHTTP.ObterMotivo: string;
 begin
-  Result := FMotivo;
+  Result := FMotivoHTTP;
 end;
 
 function TRespostaHTTP.ObterStatus: Integer;
 begin
-  Result := FStatus;
+  Result := FStatusHTTP;
 end;
 
 end.

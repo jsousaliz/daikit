@@ -44,6 +44,7 @@ uses
   Daikit.Dominio.Excecoes,
   Daikit.Aplicacao.Interfaces,
   Daikit.Aplicacao.TokenCancelamento,
+  Daikit.Adaptadores.Interfaces,
   Daikit.Adaptadores.ChaveAPI,
   Daikit.Infraestrutura.HTTP.Interfaces,
   Daikit.Infraestrutura.HTTP.Constantes,
@@ -72,15 +73,20 @@ end;
 function CriarAdaptador(out ATransporte: TTransporteHTTPFalso;
   const AChave: string = 'chave-gemini-falsa'): IAdaptadorIA;
 var
-  LTransporte: ITransporteHTTP;
-  LArmazenamento: IArmazenamentoContextoGemini;
+  LTransporteHTTPFalso: ITransporteHTTP;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LConfiguracaoGemini: IConfiguracaoGemini;
+  LMapeadorGemini: IMapeadorGemini;
+  LArmazenamentoContextoGemini: IArmazenamentoContextoGemini;
 begin
   ATransporte := TTransporteHTTPFalso.Create;
-  LTransporte := ATransporte;
-  LArmazenamento := TArmazenamentoContextoGemini.Create;
-  Result := TAdaptadorGemini.Create(LTransporte,
-    TFonteChaveAPIMemoria.Create(AChave),
-    TConfiguracaoGemini.Create, TMapeadorGemini.Create(LArmazenamento));
+  LTransporteHTTPFalso := ATransporte;
+  LArmazenamentoContextoGemini := TArmazenamentoContextoGemini.Create;
+  LFonteChaveAPI := TFonteChaveAPIMemoria.Create(AChave);
+  LConfiguracaoGemini := TConfiguracaoGemini.Create;
+  LMapeadorGemini := TMapeadorGemini.Create(LArmazenamentoContextoGemini);
+  Result := TAdaptadorGemini.Create(LTransporteHTTPFalso, LFonteChaveAPI,
+    LConfiguracaoGemini, LMapeadorGemini);
 end;
 
 function CriarMapeador: IMapeadorGemini;
@@ -91,122 +97,126 @@ end;
 function RespostaHTTP(AStatus: Integer; const ACorpo: string;
   const AId: string = ''): IRespostaHTTP;
 var
-  LCabecalhos: TArray<TCabecalhoHTTP>;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
 begin
   if AId <> '' then
   begin
-    SetLength(LCabecalhos, 1);
-    LCabecalhos[0] := TCabecalhoHTTP.Criar(CCabecalhoIdRequisicaoGemini, AId);
+    SetLength(LCabecalhosHTTP, 1);
+    LCabecalhosHTTP[0] := TCabecalhoHTTP.Criar(CCabecalhoIdRequisicaoGemini, AId);
   end;
-  Result := TRespostaHTTP.Create(AStatus, '', LCabecalhos, ACorpo);
+  Result := TRespostaHTTP.Create(AStatus, '', LCabecalhosHTTP, ACorpo);
 end;
 
 function ObterCabecalho(const ARequisicao: IRequisicaoHTTP;
   const ANome: string): string;
 var
-  LCabecalho: TCabecalhoHTTP;
+  LCabecalhoHTTP: TCabecalhoHTTP;
 begin
   Result := '';
-  for LCabecalho in ARequisicao.Cabecalhos do
-    if SameText(LCabecalho.Nome, ANome) then
-      Exit(LCabecalho.Valor);
+  for LCabecalhoHTTP in ARequisicao.Cabecalhos do
+    if SameText(LCabecalhoHTTP.Nome, ANome) then
+      Exit(LCabecalhoHTTP.Valor);
 end;
 
 procedure TTestesGemini.Configuracao_DeveExigirHTTPS;
+var
+  LOpcoesConfiguracaoGemini: TOpcoesConfiguracaoGemini;
 begin
+  LOpcoesConfiguracaoGemini := TOpcoesConfiguracaoGemini.Padrao;
+  LOpcoesConfiguracaoGemini.Comum.Endpoint := 'http://api.exemplo.test';
   Assert.WillRaise(TTestLocalMethod(procedure
-    begin TConfiguracaoGemini.Create('http://api.exemplo.test').Free; end),
+    begin TConfiguracaoGemini.Create(LOpcoesConfiguracaoGemini).Free; end),
     EConfiguracaoGemini);
 end;
 
 procedure TTestesGemini.Mapeador_DeveOmitirSistemaAusente;
-var LTransporte: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
+var LTransporteHTTPFalso: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
   LAdaptador.Concluir(CriarRequisicao);
-  Assert.IsFalse(LTransporte.UltimaRequisicao.Corpo.Contains(
+  Assert.IsFalse(LTransporteHTTPFalso.UltimaRequisicao.Corpo.Contains(
     '"system_instruction"'));
 end;
 
 procedure TTestesGemini.Mapeador_DeveRejeitarMensagemFerramenta;
-var LMapeador: IMapeadorGemini;
+var LMapeadorGemini: IMapeadorGemini;
 begin
-  LMapeador := CriarMapeador;
+  LMapeadorGemini := CriarMapeador;
   Assert.WillRaise(TTestLocalMethod(procedure begin
-    LMapeador.CriarContratoRequisicao(CriarRequisicao('modelo',
+    LMapeadorGemini.CriarContratoRequisicao(CriarRequisicao('modelo',
       TPapelMensagemIA.Ferramenta), 'padrao', 100).Free; end), EContratoGemini);
 end;
 
 procedure TTestesGemini.Mapeador_DeveRejeitarSomenteMensagemSistema;
-var LMapeador: IMapeadorGemini;
+var LMapeadorGemini: IMapeadorGemini;
 begin
-  LMapeador := CriarMapeador;
+  LMapeadorGemini := CriarMapeador;
   Assert.WillRaise(TTestLocalMethod(procedure begin
-    LMapeador.CriarContratoRequisicao(CriarRequisicao('modelo',
+    LMapeadorGemini.CriarContratoRequisicao(CriarRequisicao('modelo',
       TPapelMensagemIA.Sistema), 'padrao', 100).Free; end), EContratoGemini);
 end;
 
 procedure TTestesGemini.Mapeador_DeveSepararMensagemSistema;
 var
   LMensagens: TArray<IMensagemIA>;
-  LRequisicao: IRequisicaoChatIA;
-  LContrato: TRequisicaoInteracaoGemini;
-  LMapeador: IMapeadorGemini;
+  LRequisicaoChat: IRequisicaoChatIA;
+  LContratoRequisicaoGemini: TRequisicaoInteracaoGemini;
+  LMapeadorGemini: IMapeadorGemini;
 begin
   SetLength(LMensagens, 2);
   LMensagens[0] := TMensagemIA.CriarTexto(TPapelMensagemIA.Sistema, 'instrucao');
   LMensagens[1] := TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario, 'pergunta');
-  LRequisicao := TRequisicaoChatIA.Create('modelo', LMensagens);
-  LMapeador := CriarMapeador;
-  LContrato := LMapeador.CriarContratoRequisicao(LRequisicao, 'padrao', 100);
+  LRequisicaoChat := TRequisicaoChatIA.Create('modelo', LMensagens);
+  LMapeadorGemini := CriarMapeador;
+  LContratoRequisicaoGemini := LMapeadorGemini.CriarContratoRequisicao(LRequisicaoChat, 'padrao', 100);
   try
-    Assert.AreEqual('instrucao', LContrato.InstrucaoSistema);
-    Assert.AreEqual(1, Integer(Length(LContrato.Entrada)));
-    Assert.AreEqual(CTipoEntradaUsuarioGemini, LContrato.Entrada[0].Tipo);
+    Assert.AreEqual('instrucao', LContratoRequisicaoGemini.InstrucaoSistema);
+    Assert.AreEqual(1, Integer(Length(LContratoRequisicaoGemini.Entrada)));
+    Assert.AreEqual(CTipoEntradaUsuarioGemini, LContratoRequisicaoGemini.Entrada[0].Tipo);
   finally
-    LContrato.Free;
+    LContratoRequisicaoGemini.Free;
   end;
 end;
 
 procedure TTestesGemini.Adaptador_DeveCriarRequisicaoAutenticadaStateless;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LJSON: TJSONObject;
+  LObjetoJSON: TJSONObject;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
   LAdaptador.Concluir(CriarRequisicao);
-  Assert.AreEqual(CEndpointInteracoesGemini, LTransporte.UltimaRequisicao.URL);
+  Assert.AreEqual(CEndpointInteracoesGemini, LTransporteHTTPFalso.UltimaRequisicao.URL);
   Assert.AreEqual('chave-gemini-falsa', ObterCabecalho(
-    LTransporte.UltimaRequisicao, CCabecalhoChaveGemini));
-  LJSON := TJSONObject.ParseJSONValue(LTransporte.UltimaRequisicao.Corpo)
+    LTransporteHTTPFalso.UltimaRequisicao, CCabecalhoChaveGemini));
+  LObjetoJSON := TJSONObject.ParseJSONValue(LTransporteHTTPFalso.UltimaRequisicao.Corpo)
     as TJSONObject;
   try
-    Assert.AreEqual('modelo-explicito', LJSON.GetValue<string>('model'));
-    Assert.IsFalse(LJSON.GetValue<Boolean>('store'));
-    Assert.IsNotNull(LJSON.GetValue('input'));
+    Assert.AreEqual('modelo-explicito', LObjetoJSON.GetValue<string>('model'));
+    Assert.IsFalse(LObjetoJSON.GetValue<Boolean>('store'));
+    Assert.IsNotNull(LObjetoJSON.GetValue('input'));
     Assert.AreEqual(CMaximoTokensSaidaPadraoGemini,
-      LJSON.GetValue<Integer>('generation_config.max_output_tokens'));
+      LObjetoJSON.GetValue<Integer>('generation_config.max_output_tokens'));
   finally
-    LJSON.Free;
+    LObjetoJSON.Free;
   end;
 end;
 
 procedure TTestesGemini.Adaptador_DeveFalharSemChaveAntesDoTransporte;
-var LTransporte: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
+var LTransporteHTTPFalso: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte, '');
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso, '');
   Assert.WillRaise(TTestLocalMethod(procedure begin
     LAdaptador.Concluir(CriarRequisicao); end), EConfiguracaoGemini);
-  Assert.AreEqual(0, LTransporte.QuantidadeChamadas);
+  Assert.AreEqual(0, LTransporteHTTPFalso.QuantidadeChamadas);
 end;
 
 procedure TTestesGemini.Adaptador_DeveInformarCapacidadesImplementadas;
-var LTransporte: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
+var LTransporteHTTPFalso: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
   Assert.IsTrue(LAdaptador.Capacidades.SuportaTextoSincrono);
   Assert.IsFalse(LAdaptador.Capacidades.SuportaFluxoContinuo);
   Assert.IsFalse(LAdaptador.Capacidades.SuportaFerramentas);
@@ -216,12 +226,12 @@ end;
 
 procedure TTestesGemini.Adaptador_DeveMapearErroEmListaSemExporMensagem;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
   LCapturou: Boolean;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(400,
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(400,
     CRespostaGeminiErroEmLista, 'req_gemini_lista_123'));
   LCapturou := False;
   try
@@ -240,12 +250,12 @@ begin
 end;
 procedure TTestesGemini.Adaptador_DeveMapearErroSemExporMensagem;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
   LCapturou: Boolean;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(400, CRespostaGeminiErro,
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(400, CRespostaGeminiErro,
     'req_gemini_123'));
   LCapturou := False;
   try
@@ -265,69 +275,69 @@ end;
 
 procedure TTestesGemini.Adaptador_DeveMapearRespostaEUso;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
-  LResposta := LAdaptador.Concluir(CriarRequisicao);
-  Assert.AreEqual('int_teste_123', LResposta.Id);
-  Assert.AreEqual('Ola do Gemini', LResposta.Mensagem.Texto);
-  Assert.AreEqual(Int64(12), LResposta.Uso.UnidadesEntrada);
-  Assert.AreEqual(Int64(8), LResposta.Uso.UnidadesSaida);
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
+  LRespostaChat := LAdaptador.Concluir(CriarRequisicao);
+  Assert.AreEqual('int_teste_123', LRespostaChat.Id);
+  Assert.AreEqual('Ola do Gemini', LRespostaChat.Mensagem.Texto);
+  Assert.AreEqual(Int64(12), LRespostaChat.Uso.UnidadesEntrada);
+  Assert.AreEqual(Int64(8), LRespostaChat.Uso.UnidadesSaida);
 end;
 
 procedure TTestesGemini.Adaptador_DevePreservarMultiplosTextos;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
     RespostaHTTP(200, CRespostaGeminiMultiplosTextos));
-  LResposta := LAdaptador.Concluir(CriarRequisicao);
-  Assert.AreEqual(2, Integer(Length(LResposta.Mensagem.Partes)));
-  Assert.AreEqual('primeira segunda', LResposta.Mensagem.Texto);
+  LRespostaChat := LAdaptador.Concluir(CriarRequisicao);
+  Assert.AreEqual(2, Integer(Length(LRespostaChat.Mensagem.Partes)));
+  Assert.AreEqual('primeira segunda', LRespostaChat.Mensagem.Texto);
 end;
 
 procedure TTestesGemini.Adaptador_DeveRespeitarCancelamento;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LToken: ITokenCancelamentoIA;
+  LTokenCancelamento: ITokenCancelamentoIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LToken := TTokenCancelamentoIA.Create;
-  LToken.Cancelar;
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTokenCancelamento := TTokenCancelamentoIA.Create;
+  LTokenCancelamento.Cancelar;
   Assert.WillRaise(TTestLocalMethod(procedure begin
-    LAdaptador.Concluir(CriarRequisicao, LToken); end), EOperacaoCanceladaIA);
-  Assert.AreEqual(0, LTransporte.QuantidadeChamadas);
+    LAdaptador.Concluir(CriarRequisicao, LTokenCancelamento); end), EOperacaoCanceladaIA);
+  Assert.AreEqual(0, LTransporteHTTPFalso.QuantidadeChamadas);
 end;
 
 procedure TTestesGemini.Adaptador_DeveUsarModeloPadrao;
-var LTransporte: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
+var LTransporteHTTPFalso: TTransporteHTTPFalso; LAdaptador: IAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
   LAdaptador.Concluir(CriarRequisicao(''));
-  Assert.IsTrue(LTransporte.UltimaRequisicao.Corpo.Contains(
+  Assert.IsTrue(LTransporteHTTPFalso.UltimaRequisicao.Corpo.Contains(
     '"model":"' + CModeloGeminiPadrao + '"'));
 end;
 
 procedure TTestesGemini.Adaptador_DevePreservarPensamentoNoSegundoTurno;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
   LPrimeiraResposta: IRespostaChatIA;
   LMensagens: TArray<IMensagemIA>;
   LSegundaRequisicao: IRequisicaoChatIA;
-  LJSON: TJSONObject;
+  LObjetoJSON: TJSONObject;
   LEntrada: TJSONArray;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
     RespostaHTTP(200, CRespostaGeminiComPensamento));
   LPrimeiraResposta := LAdaptador.Concluir(CriarRequisicao);
   Assert.AreEqual(CPrefixoContextoGemini + 'int_pensamento_123',
@@ -341,13 +351,13 @@ begin
     'segunda pergunta');
   LSegundaRequisicao := TRequisicaoChatIA.Create('modelo-explicito',
     LMensagens);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSucesso));
   LAdaptador.Concluir(LSegundaRequisicao);
 
-  LJSON := TJSONObject.ParseJSONValue(
-    LTransporte.UltimaRequisicao.Corpo) as TJSONObject;
+  LObjetoJSON := TJSONObject.ParseJSONValue(
+    LTransporteHTTPFalso.UltimaRequisicao.Corpo) as TJSONObject;
   try
-    LEntrada := LJSON.GetValue<TJSONArray>('input');
+    LEntrada := LObjetoJSON.GetValue<TJSONArray>('input');
     Assert.AreEqual(4, LEntrada.Count);
     Assert.AreEqual(CTipoPensamentoGemini,
       (LEntrada.Items[1] as TJSONObject).GetValue<string>('type'));
@@ -358,35 +368,35 @@ begin
     Assert.AreEqual(CTipoEntradaUsuarioGemini,
       (LEntrada.Items[3] as TJSONObject).GetValue<string>('type'));
   finally
-    LJSON.Free;
+    LObjetoJSON.Free;
   end;
 end;
 
 procedure TTestesGemini.Mapeador_DeveFalharQuandoContextoLocalNaoExiste;
 var
-  LMapeador: IMapeadorGemini;
+  LMapeadorGemini: IMapeadorGemini;
   LMensagens: TArray<IMensagemIA>;
-  LRequisicao: IRequisicaoChatIA;
+  LRequisicaoChat: IRequisicaoChatIA;
 begin
-  LMapeador := CriarMapeador;
+  LMapeadorGemini := CriarMapeador;
   SetLength(LMensagens, 2);
   LMensagens[0] := TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario,
     'pergunta');
   LMensagens[1] := TMensagemIA.CriarTexto(TPapelMensagemIA.Assistente,
     'resposta', '', CPrefixoContextoGemini + 'inexistente');
-  LRequisicao := TRequisicaoChatIA.Create('modelo', LMensagens);
+  LRequisicaoChat := TRequisicaoChatIA.Create('modelo', LMensagens);
   Assert.WillRaise(TTestLocalMethod(procedure begin
-    LMapeador.CriarContratoRequisicao(LRequisicao, 'padrao', 100).Free;
+    LMapeadorGemini.CriarContratoRequisicao(LRequisicaoChat, 'padrao', 100).Free;
   end), EContratoGemini);
 end;
 
 procedure TTestesGemini.Adaptador_DeveRejeitarStepDesconhecido;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
     RespostaHTTP(200, CRespostaGeminiStepDesconhecido));
   Assert.WillRaise(TTestLocalMethod(procedure begin
     LAdaptador.Concluir(CriarRequisicao);
@@ -395,27 +405,27 @@ end;
 
 procedure TTestesGemini.Adaptador_DeveCriarCorrelacaoLocalQuandoRespostaNaoTemId;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSemId));
-  LResposta := LAdaptador.Concluir(CriarRequisicao);
-  Assert.AreEqual('', LResposta.Id);
-  Assert.IsTrue(LResposta.Mensagem.IdCorrelacao.StartsWith(
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaGeminiSemId));
+  LRespostaChat := LAdaptador.Concluir(CriarRequisicao);
+  Assert.AreEqual('', LRespostaChat.Id);
+  Assert.IsTrue(LRespostaChat.Mensagem.IdCorrelacao.StartsWith(
     CPrefixoContextoGemini));
-  Assert.IsTrue(Length(LResposta.Mensagem.IdCorrelacao) >
+  Assert.IsTrue(Length(LRespostaChat.Mensagem.IdCorrelacao) >
     Length(CPrefixoContextoGemini));
 end;
 
 procedure TTestesGemini.Adaptador_DeveRejeitarPensamentoSemAssinatura;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
     RespostaHTTP(200, CRespostaGeminiPensamentoSemAssinatura));
   Assert.WillRaise(TTestLocalMethod(procedure begin
     LAdaptador.Concluir(CriarRequisicao);
@@ -424,28 +434,30 @@ end;
 
 procedure TTestesGemini.Armazenamento_DeveGuardarRemoverELimpar;
 var
-  LArmazenamento: IArmazenamentoContextoGemini;
+  LArmazenamentoContextoGemini: IArmazenamentoContextoGemini;
   LContexto: string;
 begin
-  LArmazenamento := TArmazenamentoContextoGemini.Create;
-  LArmazenamento.Guardar('id-1', '{"steps":[]}');
-  LArmazenamento.Guardar('id-2', '{"steps":[]}');
-  Assert.AreEqual(2, LArmazenamento.Quantidade);
-  Assert.IsTrue(LArmazenamento.TentarObter('id-1', LContexto));
+  LArmazenamentoContextoGemini := TArmazenamentoContextoGemini.Create;
+  LArmazenamentoContextoGemini.Guardar('id-1', '{"steps":[]}');
+  LArmazenamentoContextoGemini.Guardar('id-2', '{"steps":[]}');
+  Assert.AreEqual(2, LArmazenamentoContextoGemini.Quantidade);
+  Assert.IsTrue(LArmazenamentoContextoGemini.TentarObter('id-1', LContexto));
   Assert.AreEqual('{"steps":[]}', LContexto);
-  LArmazenamento.Remover('id-1');
-  Assert.IsFalse(LArmazenamento.TentarObter('id-1', LContexto));
-  LArmazenamento.Limpar;
-  Assert.AreEqual(0, LArmazenamento.Quantidade);
+  LArmazenamentoContextoGemini.Remover('id-1');
+  Assert.IsFalse(LArmazenamentoContextoGemini.TentarObter('id-1', LContexto));
+  LArmazenamentoContextoGemini.Limpar;
+  Assert.AreEqual(0, LArmazenamentoContextoGemini.Quantidade);
 end;
 
 procedure TTestesGemini.Configuracao_DeveRejeitarModoRemotoAindaNaoImplementado;
+var
+  LOpcoesConfiguracaoGemini: TOpcoesConfiguracaoGemini;
 begin
+  LOpcoesConfiguracaoGemini := TOpcoesConfiguracaoGemini.Padrao;
+  LOpcoesConfiguracaoGemini.ModoContexto :=
+    TModoContextoGemini.RemotoGoogle;
   Assert.WillRaise(TTestLocalMethod(procedure begin
-    TConfiguracaoGemini.Create(CEndpointInteracoesGemini,
-      CModeloGeminiPadrao, CMaximoTokensSaidaPadraoGemini,
-      CTimeoutConexaoPadraoMS, CTimeoutRespostaPadraoMS,
-      CLimiteRespostaPadraoBytes, TModoContextoGemini.RemotoGoogle).Free;
+    TConfiguracaoGemini.Create(LOpcoesConfiguracaoGemini).Free;
   end), EConfiguracaoGemini);
 end;
 

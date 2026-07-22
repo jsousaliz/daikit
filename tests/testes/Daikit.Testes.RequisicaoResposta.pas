@@ -37,22 +37,22 @@ end;
 
 procedure TTestesRequisicaoResposta.Requisicao_DevePreservarModeloEMensagens;
 var
-  LRequisicao: IRequisicaoChatIA;
+  LRequisicaoChat: IRequisicaoChatIA;
 begin
-  LRequisicao := TRequisicaoChatIA.Create('modelo', CriarMensagens);
-  Assert.AreEqual('modelo', LRequisicao.Modelo);
-  Assert.AreEqual('ola', LRequisicao.Mensagens[0].Texto);
+  LRequisicaoChat := TRequisicaoChatIA.Create('modelo', CriarMensagens);
+  Assert.AreEqual('modelo', LRequisicaoChat.Modelo);
+  Assert.AreEqual('ola', LRequisicaoChat.Mensagens[0].Texto);
 end;
 
 procedure TTestesRequisicaoResposta.Requisicao_DeveProtegerColecaoInterna;
 var
-  LRequisicao: IRequisicaoChatIA;
+  LRequisicaoChat: IRequisicaoChatIA;
   LMensagens: TArray<IMensagemIA>;
 begin
-  LRequisicao := TRequisicaoChatIA.Create('modelo', CriarMensagens);
-  LMensagens := LRequisicao.Mensagens;
+  LRequisicaoChat := TRequisicaoChatIA.Create('modelo', CriarMensagens);
+  LMensagens := LRequisicaoChat.Mensagens;
   LMensagens[0] := nil;
-  Assert.AreEqual('ola', LRequisicao.Mensagens[0].Texto);
+  Assert.AreEqual('ola', LRequisicaoChat.Mensagens[0].Texto);
 end;
 
 procedure TTestesRequisicaoResposta.Requisicao_NaoDeveAceitarMensagemNula;
@@ -82,23 +82,23 @@ end;
 
 procedure TTestesRequisicaoResposta.Resposta_DeveAceitarUsoAusente;
 var
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LResposta := TRespostaChatIA.Create('',
+  LRespostaChat := TRespostaChatIA.Create('',
     TMensagemIA.CriarTexto(TPapelMensagemIA.Assistente, 'ok'));
-  Assert.IsNull(LResposta.Uso);
+  Assert.IsNull(LRespostaChat.Uso);
 end;
 
 procedure TTestesRequisicaoResposta.Resposta_DevePreservarDados;
 var
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LResposta := TRespostaChatIA.Create('id-1',
+  LRespostaChat := TRespostaChatIA.Create('id-1',
     TMensagemIA.CriarTexto(TPapelMensagemIA.Assistente, 'ok'),
     TUsoIA.Create(2, 3));
-  Assert.AreEqual('id-1', LResposta.Id);
-  Assert.AreEqual('ok', LResposta.Mensagem.Texto);
-  Assert.AreEqual(Int64(5), LResposta.Uso.UnidadesTotal);
+  Assert.AreEqual('id-1', LRespostaChat.Id);
+  Assert.AreEqual('ok', LRespostaChat.Mensagem.Texto);
+  Assert.AreEqual(Int64(5), LRespostaChat.Uso.UnidadesTotal);
 end;
 
 procedure TTestesRequisicaoResposta.Resposta_NaoDeveAceitarMensagemNula;

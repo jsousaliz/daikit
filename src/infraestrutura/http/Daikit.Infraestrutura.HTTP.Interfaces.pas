@@ -72,12 +72,12 @@ class function TCabecalhoHTTP.ObterValor(
   const ACabecalhos: TArray<TCabecalhoHTTP>;
   const ANome: string): string;
 var
-  LCabecalho: TCabecalhoHTTP;
+  LCabecalhoHTTP: TCabecalhoHTTP;
 begin
   Result := '';
-  for LCabecalho in ACabecalhos do
-    if SameText(LCabecalho.Nome, ANome) then
-      Exit(LCabecalho.Valor);
+  for LCabecalhoHTTP in ACabecalhos do
+    if SameText(LCabecalhoHTTP.Nome, ANome) then
+      Exit(LCabecalhoHTTP.Valor);
 end;
 
 end.

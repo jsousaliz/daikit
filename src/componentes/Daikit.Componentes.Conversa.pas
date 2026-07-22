@@ -13,7 +13,6 @@ type
 
   TConversaIA = class(TComponent)
   private
-    FArmazenamento: IArmazenamentoContextoIA;
     FContexto: IContextoIA;
     FAoAdicionar: TEventoMensagemConversaIA;
     FAoLimpar: TEventoConversaIA;
@@ -26,9 +25,9 @@ type
     procedure DefinirArmazenamentoContexto(
       const AArmazenamentoContexto: IArmazenamentoContextoIA);
     function ObterContexto: IContextoIA;
-    procedure AdicionarSistema(const ATexto: string);
-    procedure AdicionarUsuario(const ATexto: string);
-    procedure AdicionarAssistente(const ATexto: string);
+    procedure AdicionarMensagemSistema(const ATexto: string);
+    procedure AdicionarMensagemUsuario(const ATexto: string);
+    procedure AdicionarMensagemAssistente(const ATexto: string);
     function ObterMensagens: TArray<IMensagemIA>;
     procedure Limpar;
     property Quantidade: Integer read ObterQuantidade;
@@ -51,27 +50,27 @@ begin
   DefinirArmazenamentoContexto(TArmazenamentoContextoIA.Create);
 end;
 
-procedure TConversaIA.AdicionarAssistente(const ATexto: string);
+procedure TConversaIA.AdicionarMensagemAssistente(const ATexto: string);
 var
   LMensagem: IMensagemIA;
 begin
-  LMensagem := FContexto.AdicionarAssistente(ATexto);
+  LMensagem := FContexto.AdicionarMensagemAssistente(ATexto);
   NotificarMensagemAdicionada(LMensagem);
 end;
 
-procedure TConversaIA.AdicionarSistema(const ATexto: string);
+procedure TConversaIA.AdicionarMensagemSistema(const ATexto: string);
 var
   LMensagem: IMensagemIA;
 begin
-  LMensagem := FContexto.AdicionarSistema(ATexto);
+  LMensagem := FContexto.AdicionarMensagemSistema(ATexto);
   NotificarMensagemAdicionada(LMensagem);
 end;
 
-procedure TConversaIA.AdicionarUsuario(const ATexto: string);
+procedure TConversaIA.AdicionarMensagemUsuario(const ATexto: string);
 var
   LMensagem: IMensagemIA;
 begin
-  LMensagem := FContexto.AdicionarUsuario(ATexto);
+  LMensagem := FContexto.AdicionarMensagemUsuario(ATexto);
   NotificarMensagemAdicionada(LMensagem);
 end;
 
@@ -83,7 +82,6 @@ var
 begin
   LContexto := TContextoIA.Create(AArmazenamentoContexto);
   LTinhaContexto := FContexto <> nil;
-  FArmazenamento := AArmazenamentoContexto;
   FContexto := LContexto;
   if LTinhaContexto then
     NotificarAlteracao;

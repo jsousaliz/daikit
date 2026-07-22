@@ -104,21 +104,26 @@ end;
 function CriarRequisicaoHTTP(
   const ACorpo: string = CJSONRequisicaoTeste): IRequisicaoHTTP;
 var
-  LCabecalhos: TArray<TCabecalhoHTTP>;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
 begin
-  SetLength(LCabecalhos, CQuantidadeCabecalhosTeste);
-  LCabecalhos[CIndiceCabecalhoTeste] := TCabecalhoHTTP.Criar('Authorization',
+  SetLength(LCabecalhosHTTP, CQuantidadeCabecalhosTeste);
+  LCabecalhosHTTP[CIndiceCabecalhoTeste] := TCabecalhoHTTP.Criar('Authorization',
     'Bearer segredo-de-teste');
-  Result := TRequisicaoHTTP.Create(TMetodoHTTP.Post,
-    CURLTeste + '?api_key=segredo#fragmento', LCabecalhos, ACorpo);
+  LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+  LOpcoesRequisicaoHTTP.Metodo := TMetodoHTTP.Post;
+  LOpcoesRequisicaoHTTP.URL := CURLTeste + '?api_key=segredo#fragmento';
+  LOpcoesRequisicaoHTTP.Cabecalhos := LCabecalhosHTTP;
+  LOpcoesRequisicaoHTTP.Corpo := ACorpo;
+  Result := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
 end;
 
 function CriarRespostaHTTP(
   const ACorpo: string = CJSONRespostaTeste): IRespostaHTTP;
 var
-  LCabecalhos: TArray<TCabecalhoHTTP>;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
 begin
-  Result := TRespostaHTTP.Create(CStatusTeste, 'Created', LCabecalhos,
+  Result := TRespostaHTTP.Create(CStatusTeste, 'Created', LCabecalhosHTTP,
     ACorpo);
 end;
 
@@ -134,103 +139,103 @@ procedure TTestesLog.Evento_DevePreservarDadosImutaveis;
 var
   LDataHoraAntes: TDateTime;
   LDataHoraDepois: TDateTime;
-  LEvento: IEventoLogIA;
+  LEventoLog: IEventoLogIA;
 begin
   LDataHoraAntes := TTimeZone.Local.ToUniversalTime(Now);
-  LEvento := TEventoLogIA.Create(TTipoEventoLogIA.Resposta,
+  LEventoLog := TEventoLogIA.Create(TTipoEventoLogIA.Resposta,
     TNivelLogIA.Informacao, CProvedorTeste, CJSONRespostaTeste,
     CStatusTeste);
   LDataHoraDepois := TTimeZone.Local.ToUniversalTime(Now);
 
-  Assert.IsTrue(LEvento.Tipo = TTipoEventoLogIA.Resposta);
-  Assert.IsTrue(LEvento.Nivel = TNivelLogIA.Informacao);
-  Assert.AreEqual(CProvedorTeste, LEvento.Provedor);
-  Assert.AreEqual(CJSONRespostaTeste, LEvento.Mensagem);
-  Assert.IsTrue(LEvento.DataHoraUTC >= LDataHoraAntes);
-  Assert.IsTrue(LEvento.DataHoraUTC <= LDataHoraDepois);
-  Assert.AreEqual(CStatusTeste, LEvento.StatusHTTP);
+  Assert.IsTrue(LEventoLog.Tipo = TTipoEventoLogIA.Resposta);
+  Assert.IsTrue(LEventoLog.Nivel = TNivelLogIA.Informacao);
+  Assert.AreEqual(CProvedorTeste, LEventoLog.Provedor);
+  Assert.AreEqual(CJSONRespostaTeste, LEventoLog.Mensagem);
+  Assert.IsTrue(LEventoLog.DataHoraUTC >= LDataHoraAntes);
+  Assert.IsTrue(LEventoLog.DataHoraUTC <= LDataHoraDepois);
+  Assert.AreEqual(CStatusTeste, LEventoLog.StatusHTTP);
 end;
 
 procedure TTestesLog.Transporte_DeveExigirReceptor;
 var
-  LTransporte: ITransporteHTTP;
+  LTransporteHTTP: ITransporteHTTP;
 begin
-  LTransporte := TTransporteHTTPFalso.Create;
+  LTransporteHTTP := TTransporteHTTPFalso.Create;
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      TTransporteHTTPComLog.Create(LTransporte, nil, CProvedorTeste);
+      TTransporteHTTPComLog.Create(LTransporteHTTP, nil, CProvedorTeste);
     end), EValidacaoHTTP);
 end;
 
 procedure TTestesLog.Transporte_DeveRegistrarRequisicaoEResposta;
 var
-  LObjetoTransporte: TTransporteHTTPFalso;
-  LTransporteBase: ITransporteHTTP;
-  LTransporteLog: ITransporteHTTP;
-  LObjetoReceptor: TReceptorLogTeste;
-  LReceptor: IReceptorLogIA;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
+  LReceptorLogTeste: TReceptorLogTeste;
+  LReceptorLog: IReceptorLogIA;
   LRespostaEsperada: IRespostaHTTP;
 begin
-  LObjetoTransporte := TTransporteHTTPFalso.Create;
-  LTransporteBase := LObjetoTransporte;
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
   LRespostaEsperada := CriarRespostaHTTP;
-  LObjetoTransporte.ProgramarResposta(LRespostaEsperada);
-  LObjetoReceptor := TReceptorLogTeste.Create;
-  LReceptor := LObjetoReceptor;
-  LTransporteLog := TTransporteHTTPComLog.Create(LTransporteBase,
-    LReceptor, CProvedorTeste);
+  LTransporteHTTPFalso.ProgramarResposta(LRespostaEsperada);
+  LReceptorLogTeste := TReceptorLogTeste.Create;
+  LReceptorLog := LReceptorLogTeste;
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
+    LReceptorLog, CProvedorTeste);
 
-  Assert.IsTrue(LTransporteLog.Enviar(CriarRequisicaoHTTP) =
+  Assert.IsTrue(LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP) =
     LRespostaEsperada);
   Assert.AreEqual(CQuantidadeEventosLogSucesso,
-    LObjetoReceptor.Quantidade);
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoRequisicao).Tipo =
+    LReceptorLogTeste.Quantidade);
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Tipo =
     TTipoEventoLogIA.Requisicao);
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoResultado).Tipo =
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Tipo =
     TTipoEventoLogIA.Resposta);
   Assert.AreEqual(CJSONRequisicaoTeste,
-    LObjetoReceptor.Evento(CIndiceEventoRequisicao).Mensagem);
+    LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Mensagem);
   Assert.AreEqual(CJSONRespostaTeste,
-    LObjetoReceptor.Evento(CIndiceEventoResultado).Mensagem);
+    LReceptorLogTeste.Evento(CIndiceEventoResultado).Mensagem);
   Assert.AreEqual(CStatusTeste,
-    LObjetoReceptor.Evento(CIndiceEventoResultado).StatusHTTP);
+    LReceptorLogTeste.Evento(CIndiceEventoResultado).StatusHTTP);
 end;
 
 procedure TTestesLog.Transporte_DeveRegistrarRespostaHTTPDeErro;
 var
-  LObjetoTransporte: TTransporteHTTPFalso;
-  LTransporteBase: ITransporteHTTP;
-  LTransporteLog: ITransporteHTTP;
-  LObjetoReceptor: TReceptorLogTeste;
-  LReceptor: IReceptorLogIA;
-  LResposta: IRespostaHTTP;
-  LCabecalhos: TArray<TCabecalhoHTTP>;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
+  LReceptorLogTeste: TReceptorLogTeste;
+  LReceptorLog: IReceptorLogIA;
+  LRespostaHTTP: IRespostaHTTP;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
 begin
-  LObjetoTransporte := TTransporteHTTPFalso.Create;
-  LTransporteBase := LObjetoTransporte;
-  LResposta := TRespostaHTTP.Create(CStatusErroTeste, 'Bad Request',
-    LCabecalhos, CJSONRespostaTeste);
-  LObjetoTransporte.ProgramarResposta(LResposta);
-  LObjetoReceptor := TReceptorLogTeste.Create;
-  LReceptor := LObjetoReceptor;
-  LTransporteLog := TTransporteHTTPComLog.Create(LTransporteBase,
-    LReceptor, CProvedorTeste);
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
+  LRespostaHTTP := TRespostaHTTP.Create(CStatusErroTeste, 'Bad Request',
+    LCabecalhosHTTP, CJSONRespostaTeste);
+  LTransporteHTTPFalso.ProgramarResposta(LRespostaHTTP);
+  LReceptorLogTeste := TReceptorLogTeste.Create;
+  LReceptorLog := LReceptorLogTeste;
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
+    LReceptorLog, CProvedorTeste);
 
-  Assert.IsTrue(LTransporteLog.Enviar(CriarRequisicaoHTTP) = LResposta);
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoResultado).Nivel =
+  Assert.IsTrue(LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP) = LRespostaHTTP);
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Nivel =
     TNivelLogIA.Erro);
   Assert.AreEqual(CStatusErroTeste,
-    LObjetoReceptor.Evento(CIndiceEventoResultado).StatusHTTP);
+    LReceptorLogTeste.Evento(CIndiceEventoResultado).StatusHTTP);
 end;
 
 procedure TTestesLog.Transporte_DeveSanitizarSegredosEPreservarConteudo;
 var
-  LObjetoTransporte: TTransporteHTTPFalso;
-  LTransporteBase: ITransporteHTTP;
-  LTransporteLog: ITransporteHTTP;
-  LObjetoReceptor: TReceptorLogTeste;
-  LReceptor: IReceptorLogIA;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
+  LReceptorLogTeste: TReceptorLogTeste;
+  LReceptorLog: IReceptorLogIA;
   LJSONRequisicao: string;
   LJSONResposta: string;
 begin
@@ -238,124 +243,124 @@ begin
     'content', 'pergunta-visivel');
   LJSONResposta := CriarJSONComDoisCampos('password', 'senha-secreta',
     'content', 'resposta-visivel');
-  LObjetoTransporte := TTransporteHTTPFalso.Create;
-  LTransporteBase := LObjetoTransporte;
-  LObjetoTransporte.ProgramarResposta(CriarRespostaHTTP(LJSONResposta));
-  LObjetoReceptor := TReceptorLogTeste.Create;
-  LReceptor := LObjetoReceptor;
-  LTransporteLog := TTransporteHTTPComLog.Create(LTransporteBase,
-    LReceptor, CProvedorTeste);
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
+  LTransporteHTTPFalso.ProgramarResposta(CriarRespostaHTTP(LJSONResposta));
+  LReceptorLogTeste := TReceptorLogTeste.Create;
+  LReceptorLog := LReceptorLogTeste;
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
+    LReceptorLog, CProvedorTeste);
 
-  LTransporteLog.Enviar(CriarRequisicaoHTTP(LJSONRequisicao));
+  LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP(LJSONRequisicao));
 
-  Assert.IsFalse(LObjetoReceptor.Evento(CIndiceEventoRequisicao).Mensagem.
+  Assert.IsFalse(LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Mensagem.
     Contains('segredo-chave'));
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoRequisicao).Mensagem.
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Mensagem.
     Contains('pergunta-visivel'));
-  Assert.IsFalse(LObjetoReceptor.Evento(CIndiceEventoResultado).Mensagem.
+  Assert.IsFalse(LReceptorLogTeste.Evento(CIndiceEventoResultado).Mensagem.
     Contains('senha-secreta'));
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoResultado).Mensagem.
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Mensagem.
     Contains('resposta-visivel'));
 end;
 
 procedure TTestesLog.Transporte_DeveTratarJSONInvalido;
 var
   LCorpoInvalido: string;
-  LObjetoReceptor: TReceptorLogTeste;
-  LObjetoTransporte: TTransporteHTTPFalso;
-  LReceptor: IReceptorLogIA;
-  LTransporteBase: ITransporteHTTP;
-  LTransporteLog: ITransporteHTTP;
+  LReceptorLogTeste: TReceptorLogTeste;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LReceptorLog: IReceptorLogIA;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
 begin
   LCorpoInvalido := '{api_key:segredo';
-  LObjetoTransporte := TTransporteHTTPFalso.Create;
-  LTransporteBase := LObjetoTransporte;
-  LObjetoTransporte.ProgramarResposta(CriarRespostaHTTP(LCorpoInvalido));
-  LObjetoReceptor := TReceptorLogTeste.Create;
-  LReceptor := LObjetoReceptor;
-  LTransporteLog := TTransporteHTTPComLog.Create(LTransporteBase,
-    LReceptor, CProvedorTeste);
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
+  LTransporteHTTPFalso.ProgramarResposta(CriarRespostaHTTP(LCorpoInvalido));
+  LReceptorLogTeste := TReceptorLogTeste.Create;
+  LReceptorLog := LReceptorLogTeste;
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
+    LReceptorLog, CProvedorTeste);
 
-  LTransporteLog.Enviar(CriarRequisicaoHTTP);
+  LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP);
 
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoResultado).Mensagem.
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Mensagem.
     Contains(CJSONInvalidoRemovido));
-  Assert.IsFalse(LObjetoReceptor.Evento(CIndiceEventoResultado).Mensagem.
+  Assert.IsFalse(LReceptorLogTeste.Evento(CIndiceEventoResultado).Mensagem.
     Contains('segredo'));
 end;
 
 procedure TTestesLog.Transporte_DevePreservarExcecaoOriginal;
 var
-  LObjetoTransporte: TTransporteHTTPFalso;
-  LTransporteBase: ITransporteHTTP;
-  LTransporteLog: ITransporteHTTP;
-  LObjetoReceptor: TReceptorLogTeste;
-  LReceptor: IReceptorLogIA;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
+  LReceptorLogTeste: TReceptorLogTeste;
+  LReceptorLog: IReceptorLogIA;
 begin
-  LObjetoTransporte := TTransporteHTTPFalso.Create;
-  LTransporteBase := LObjetoTransporte;
-  LObjetoTransporte.ProgramarErro(CMensagemErroTransporte);
-  LObjetoReceptor := TReceptorLogTeste.Create;
-  LReceptor := LObjetoReceptor;
-  LTransporteLog := TTransporteHTTPComLog.Create(LTransporteBase,
-    LReceptor, CProvedorTeste);
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
+  LTransporteHTTPFalso.ProgramarErro(CMensagemErroTransporte);
+  LReceptorLogTeste := TReceptorLogTeste.Create;
+  LReceptorLog := LReceptorLogTeste;
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
+    LReceptorLog, CProvedorTeste);
 
   try
-    LTransporteLog.Enviar(CriarRequisicaoHTTP);
+    LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP);
     Assert.Fail('Era esperada uma ETransporteHTTP.');
   except
     on E: ETransporteHTTP do
       Assert.AreEqual(CMensagemErroTransporte, E.Message);
   end;
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoResultado).Tipo =
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Tipo =
     TTipoEventoLogIA.Erro);
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoResultado).Mensagem.
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Mensagem.
     Contains(CMensagemErroTransporte));
 end;
 
 procedure TTestesLog.Transporte_DevePreservarCancelamento;
 var
-  LObjetoTransporte: TTransporteHTTPFalso;
-  LTransporteBase: ITransporteHTTP;
-  LTransporteLog: ITransporteHTTP;
-  LObjetoReceptor: TReceptorLogTeste;
-  LReceptor: IReceptorLogIA;
-  LCancelamento: ITokenCancelamentoIA;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
+  LReceptorLogTeste: TReceptorLogTeste;
+  LReceptorLog: IReceptorLogIA;
+  LTokenCancelamento: ITokenCancelamentoIA;
 begin
-  LObjetoTransporte := TTransporteHTTPFalso.Create;
-  LTransporteBase := LObjetoTransporte;
-  LObjetoReceptor := TReceptorLogTeste.Create;
-  LReceptor := LObjetoReceptor;
-  LTransporteLog := TTransporteHTTPComLog.Create(LTransporteBase,
-    LReceptor, CProvedorTeste);
-  LCancelamento := TTokenCancelamentoIA.Create;
-  LCancelamento.Cancelar;
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
+  LReceptorLogTeste := TReceptorLogTeste.Create;
+  LReceptorLog := LReceptorLogTeste;
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
+    LReceptorLog, CProvedorTeste);
+  LTokenCancelamento := TTokenCancelamentoIA.Create;
+  LTokenCancelamento.Cancelar;
 
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      LTransporteLog.Enviar(CriarRequisicaoHTTP, LCancelamento);
+      LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP, LTokenCancelamento);
     end), EOperacaoCanceladaIA);
-  Assert.IsTrue(LObjetoReceptor.Evento(CIndiceEventoResultado).Tipo =
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Tipo =
     TTipoEventoLogIA.Cancelamento);
 end;
 
 procedure TTestesLog.Transporte_DevePropagarFalhaDoReceptor;
 var
-  LObjetoTransporte: TTransporteHTTPFalso;
-  LTransporteBase: ITransporteHTTP;
-  LTransporteLog: ITransporteHTTP;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
 begin
-  LObjetoTransporte := TTransporteHTTPFalso.Create;
-  LTransporteBase := LObjetoTransporte;
-  LObjetoTransporte.ProgramarResposta(CriarRespostaHTTP);
-  LTransporteLog := TTransporteHTTPComLog.Create(LTransporteBase,
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
+  LTransporteHTTPFalso.ProgramarResposta(CriarRespostaHTTP);
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
     TReceptorLogComFalha.Create, CProvedorTeste);
 
   Assert.WillRaiseWithMessage(
     TTestLocalMethod(procedure
     begin
-      LTransporteLog.Enviar(CriarRequisicaoHTTP);
+      LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP);
     end), Exception, CMensagemErroReceptor);
 end;
 

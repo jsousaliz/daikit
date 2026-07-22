@@ -32,108 +32,108 @@ uses
 procedure TTestesServicoContextoIA.EnviarCancelado_NaoDeveChamarProvedor;
 var
   LContexto: IContextoIA;
-  LAdaptadorObjeto: TAdaptadorIAFalso;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
   LAdaptador: IAdaptadorIA;
-  LServico: TServicoContextoIA;
-  LToken: ITokenCancelamentoIA;
+  LServicoContexto: TServicoContextoIA;
+  LTokenCancelamento: ITokenCancelamentoIA;
 begin
   LContexto := TContextoIA.Create(TArmazenamentoContextoIA.Create);
-  LAdaptadorObjeto := TAdaptadorIAFalso.Create;
-  LAdaptador := LAdaptadorObjeto;
-  LServico := TServicoContextoIA.Create(LAdaptador, LContexto);
+  LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create;
+  LAdaptador := LObjetoAdaptadorFalso;
+  LServicoContexto := TServicoContextoIA.Create(LAdaptador, LContexto);
   try
-    LToken := TTokenCancelamentoIA.Create;
-    LToken.Cancelar;
+    LTokenCancelamento := TTokenCancelamentoIA.Create;
+    LTokenCancelamento.Cancelar;
     Assert.WillRaise(
       TTestLocalMethod(procedure
       begin
-        LServico.Enviar('modelo', 'ola', TModoConversaIA.ManterHistorico, LToken);
+        LServicoContexto.Enviar('modelo', 'ola', TModoConversaIA.ManterHistorico, LTokenCancelamento);
       end),
       EOperacaoCanceladaIA);
-    Assert.AreEqual(0, LAdaptadorObjeto.QuantidadeChamadas);
+    Assert.AreEqual(0, LObjetoAdaptadorFalso.QuantidadeChamadas);
     Assert.AreEqual(0, LContexto.Quantidade);
   finally
-    LServico.Free;
+    LServicoContexto.Free;
   end;
 end;
 
 procedure TTestesServicoContextoIA.EnviarMantendoHistorico_DeveEnviarEPersistirHistorico;
 var
   LContexto: IContextoIA;
-  LAdaptadorObjeto: TAdaptadorIAFalso;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
   LAdaptador: IAdaptadorIA;
-  LServico: TServicoContextoIA;
-  LResposta: IRespostaChatIA;
+  LServicoContexto: TServicoContextoIA;
+  LRespostaChat: IRespostaChatIA;
 begin
   LContexto := TContextoIA.Create(TArmazenamentoContextoIA.Create);
-  LContexto.AdicionarSistema('seja breve');
-  LAdaptadorObjeto := TAdaptadorIAFalso.Create('Eco: ');
-  LAdaptador := LAdaptadorObjeto;
-  LServico := TServicoContextoIA.Create(LAdaptador, LContexto);
+  LContexto.AdicionarMensagemSistema('seja breve');
+  LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create('Eco: ');
+  LAdaptador := LObjetoAdaptadorFalso;
+  LServicoContexto := TServicoContextoIA.Create(LAdaptador, LContexto);
   try
-    LResposta := LServico.Enviar('modelo', 'primeira',
+    LRespostaChat := LServicoContexto.Enviar('modelo', 'primeira',
       TModoConversaIA.ManterHistorico);
-    Assert.AreEqual('Eco: primeira', LResposta.Mensagem.Texto);
+    Assert.AreEqual('Eco: primeira', LRespostaChat.Mensagem.Texto);
     Assert.AreEqual(2,
-      Integer(Length(LAdaptadorObjeto.UltimaRequisicao.Mensagens)));
+      Integer(Length(LObjetoAdaptadorFalso.UltimaRequisicao.Mensagens)));
     Assert.AreEqual(3, LContexto.Quantidade);
 
-    LServico.Enviar('modelo', 'segunda', TModoConversaIA.ManterHistorico);
+    LServicoContexto.Enviar('modelo', 'segunda', TModoConversaIA.ManterHistorico);
     Assert.AreEqual(4,
-      Integer(Length(LAdaptadorObjeto.UltimaRequisicao.Mensagens)));
+      Integer(Length(LObjetoAdaptadorFalso.UltimaRequisicao.Mensagens)));
     Assert.AreEqual(5, LContexto.Quantidade);
   finally
-    LServico.Free;
+    LServicoContexto.Free;
   end;
 end;
 
 procedure TTestesServicoContextoIA.EnviarMensagemIsolada_DeveEnviarSomenteMensagemAtual;
 var
   LContexto: IContextoIA;
-  LAdaptadorObjeto: TAdaptadorIAFalso;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
   LAdaptador: IAdaptadorIA;
-  LServico: TServicoContextoIA;
-  LResposta: IRespostaChatIA;
+  LServicoContexto: TServicoContextoIA;
+  LRespostaChat: IRespostaChatIA;
 begin
   LContexto := TContextoIA.Create(TArmazenamentoContextoIA.Create);
-  LContexto.AdicionarSistema('nao deve ser enviado');
-  LAdaptadorObjeto := TAdaptadorIAFalso.Create;
-  LAdaptador := LAdaptadorObjeto;
-  LServico := TServicoContextoIA.Create(LAdaptador, LContexto);
+  LContexto.AdicionarMensagemSistema('nao deve ser enviado');
+  LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create;
+  LAdaptador := LObjetoAdaptadorFalso;
+  LServicoContexto := TServicoContextoIA.Create(LAdaptador, LContexto);
   try
-    LResposta := LServico.Enviar('modelo', 'pergunta',
+    LRespostaChat := LServicoContexto.Enviar('modelo', 'pergunta',
       TModoConversaIA.MensagemIsolada);
-    Assert.AreEqual('Resposta: pergunta', LResposta.Mensagem.Texto);
+    Assert.AreEqual('Resposta: pergunta', LRespostaChat.Mensagem.Texto);
     Assert.AreEqual(1,
-      Integer(Length(LAdaptadorObjeto.UltimaRequisicao.Mensagens)));
+      Integer(Length(LObjetoAdaptadorFalso.UltimaRequisicao.Mensagens)));
     Assert.AreEqual(1, LContexto.Quantidade);
   finally
-    LServico.Free;
+    LServicoContexto.Free;
   end;
 end;
 
 procedure TTestesServicoContextoIA.RespostaNula_NaoDeveAlterarHistorico;
 var
   LContexto: IContextoIA;
-  LAdaptadorObjeto: TAdaptadorIAFalso;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
   LAdaptador: IAdaptadorIA;
-  LServico: TServicoContextoIA;
+  LServicoContexto: TServicoContextoIA;
 begin
   LContexto := TContextoIA.Create(TArmazenamentoContextoIA.Create);
-  LAdaptadorObjeto := TAdaptadorIAFalso.Create;
-  LAdaptadorObjeto.RetornarNulo := True;
-  LAdaptador := LAdaptadorObjeto;
-  LServico := TServicoContextoIA.Create(LAdaptador, LContexto);
+  LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create;
+  LObjetoAdaptadorFalso.RetornarNulo := True;
+  LAdaptador := LObjetoAdaptadorFalso;
+  LServicoContexto := TServicoContextoIA.Create(LAdaptador, LContexto);
   try
     Assert.WillRaise(
       TTestLocalMethod(procedure
       begin
-        LServico.Enviar('modelo', 'ola', TModoConversaIA.ManterHistorico);
+        LServicoContexto.Enviar('modelo', 'ola', TModoConversaIA.ManterHistorico);
       end),
       EValidacaoDominioIA);
     Assert.AreEqual(0, LContexto.Quantidade);
   finally
-    LServico.Free;
+    LServicoContexto.Free;
   end;
 end;
 

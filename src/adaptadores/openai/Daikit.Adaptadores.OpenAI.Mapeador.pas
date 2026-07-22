@@ -46,7 +46,7 @@ function TMapeadorOpenAI.CriarContratoRequisicao(
 var
   I: Integer;
   LMensagens: TArray<IMensagemIA>;
-  LEntrada: TArray<TMensagemEntradaOpenAI>;
+  LMensagensEntradaOpenAI: TArray<TMensagemEntradaOpenAI>;
 begin
   if ARequisicao = nil then
     raise EContratoOpenAI.Create('A requisicao canonica deve ser informada.');
@@ -57,13 +57,13 @@ begin
       Result.Modelo := AModeloPadrao;
     Result.Armazenar := False;
     LMensagens := ARequisicao.Mensagens;
-    SetLength(LEntrada, Length(LMensagens));
-    Result.Entrada := LEntrada;
+    SetLength(LMensagensEntradaOpenAI, Length(LMensagens));
+    Result.Entrada := LMensagensEntradaOpenAI;
     for I := Low(LMensagens) to High(LMensagens) do
     begin
-      LEntrada[I] := TMensagemEntradaOpenAI.Create;
-      LEntrada[I].Papel := PapelParaOpenAI(LMensagens[I].Papel);
-      LEntrada[I].Conteudo := LMensagens[I].Texto;
+      LMensagensEntradaOpenAI[I] := TMensagemEntradaOpenAI.Create;
+      LMensagensEntradaOpenAI[I].Papel := PapelParaOpenAI(LMensagens[I].Papel);
+      LMensagensEntradaOpenAI[I].Conteudo := LMensagens[I].Texto;
     end;
   except
     Result.Free;
@@ -74,10 +74,10 @@ end;
 function TMapeadorOpenAI.MapearResposta(
   AResposta: TRespostaOpenAI): IRespostaChatIA;
 var
-  LItem: TItemSaidaOpenAI;
-  LConteudo: TConteudoSaidaOpenAI;
-  LPartesLista: TList<IParteConteudoIA>;
-  LPartes: TArray<IParteConteudoIA>;
+  LItemSaidaOpenAI: TItemSaidaOpenAI;
+  LConteudoSaidaOpenAI: TConteudoSaidaOpenAI;
+  LListaPartesConteudo: TList<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
   LMensagem: IMensagemIA;
   LUso: IUsoIA;
 begin
@@ -87,24 +87,24 @@ begin
     raise EContratoOpenAI.CreateFmt(
       'A resposta OpenAI nao foi concluida (status "%s").', [AResposta.Status]);
 
-  LPartesLista := TList<IParteConteudoIA>.Create;
+  LListaPartesConteudo := TList<IParteConteudoIA>.Create;
   try
-    for LItem in AResposta.Saida do
-      if SameText(LItem.Tipo, CTipoMensagemOpenAI) and
-        SameText(LItem.Papel, CPapelAssistenteOpenAI) then
-        for LConteudo in LItem.Conteudo do
-          if SameText(LConteudo.Tipo, CTipoTextoSaidaOpenAI) and
-            (Trim(LConteudo.Texto) <> '') then
-            LPartesLista.Add(TParteConteudoTextoIA.Create(LConteudo.Texto));
-    if LPartesLista.Count = 0 then
+    for LItemSaidaOpenAI in AResposta.Saida do
+      if SameText(LItemSaidaOpenAI.Tipo, CTipoMensagemOpenAI) and
+        SameText(LItemSaidaOpenAI.Papel, CPapelAssistenteOpenAI) then
+        for LConteudoSaidaOpenAI in LItemSaidaOpenAI.Conteudo do
+          if SameText(LConteudoSaidaOpenAI.Tipo, CTipoTextoSaidaOpenAI) and
+            (Trim(LConteudoSaidaOpenAI.Texto) <> '') then
+            LListaPartesConteudo.Add(TParteConteudoTextoIA.Create(LConteudoSaidaOpenAI.Texto));
+    if LListaPartesConteudo.Count = 0 then
       raise EContratoOpenAI.Create(
         'A resposta OpenAI concluida nao possui conteudo textual.');
-    LPartes := LPartesLista.ToArray;
+    LPartesConteudo := LListaPartesConteudo.ToArray;
   finally
-    LPartesLista.Free;
+    LListaPartesConteudo.Free;
   end;
 
-  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartes);
+  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartesConteudo);
   LUso := nil;
   if AResposta.Uso <> nil then
     LUso := TUsoIA.Create(AResposta.Uso.TokensEntrada,

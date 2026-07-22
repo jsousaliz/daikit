@@ -33,7 +33,9 @@ uses
   Daikit.Dominio.Excecoes,
   Daikit.Aplicacao.Interfaces,
   Daikit.Aplicacao.TokenCancelamento,
+  Daikit.Adaptadores.Interfaces,
   Daikit.Adaptadores.ChaveAPI,
+  Daikit.Adaptadores.Configuracao,
   Daikit.Infraestrutura.HTTP.Interfaces,
   Daikit.Infraestrutura.HTTP.Modelos,
   Daikit.Adaptadores.OpenAI.Constantes,
@@ -58,58 +60,68 @@ end;
 function CriarAdaptador(out ATransporte: TTransporteHTTPFalso;
   const AChave: string = 'sk-chave-falsa-de-teste'): IAdaptadorIA;
 var
-  LTransporte: ITransporteHTTP;
+  LTransporteHTTPFalso: ITransporteHTTP;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LConfiguracaoOpenAI: IConfiguracaoOpenAI;
+  LMapeadorOpenAI: IMapeadorOpenAI;
 begin
   ATransporte := TTransporteHTTPFalso.Create;
-  LTransporte := ATransporte;
-  Result := TAdaptadorOpenAI.Create(LTransporte,
-    TFonteChaveAPIMemoria.Create(AChave), TConfiguracaoOpenAI.Create,
-    TMapeadorOpenAI.Create);
+  LTransporteHTTPFalso := ATransporte;
+  LFonteChaveAPI := TFonteChaveAPIMemoria.Create(AChave);
+  LConfiguracaoOpenAI := TConfiguracaoOpenAI.Create;
+  LMapeadorOpenAI := TMapeadorOpenAI.Create;
+  Result := TAdaptadorOpenAI.Create(LTransporteHTTPFalso, LFonteChaveAPI,
+    LConfiguracaoOpenAI, LMapeadorOpenAI);
 end;
 
 function RespostaHTTP(AStatus: Integer; const ACorpo: string;
   const AIdRequisicao: string = ''): IRespostaHTTP;
 var
-  LCabecalhos: TArray<TCabecalhoHTTP>;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
 begin
   if AIdRequisicao <> '' then
   begin
-    SetLength(LCabecalhos, 1);
-    LCabecalhos[0] := TCabecalhoHTTP.Criar(
+    SetLength(LCabecalhosHTTP, 1);
+    LCabecalhosHTTP[0] := TCabecalhoHTTP.Criar(
       CCabecalhoIdRequisicaoOpenAI, AIdRequisicao);
   end;
-  Result := TRespostaHTTP.Create(AStatus, '', LCabecalhos, ACorpo);
+  Result := TRespostaHTTP.Create(AStatus, '', LCabecalhosHTTP, ACorpo);
 end;
 
 function ObterCabecalho(const ARequisicao: IRequisicaoHTTP;
   const ANome: string): string;
 var
-  LCabecalho: TCabecalhoHTTP;
+  LCabecalhoHTTP: TCabecalhoHTTP;
 begin
   Result := '';
-  for LCabecalho in ARequisicao.Cabecalhos do
-    if SameText(LCabecalho.Nome, ANome) then
-      Exit(LCabecalho.Valor);
+  for LCabecalhoHTTP in ARequisicao.Cabecalhos do
+    if SameText(LCabecalhoHTTP.Nome, ANome) then
+      Exit(LCabecalhoHTTP.Valor);
 end;
 
 procedure TTestesOpenAI.Configuracao_DeveExigirEndpointHTTPS;
+var
+  LOpcoesConfiguracaoOpenAI: TOpcoesConfiguracaoAdaptadorIA;
 begin
+  LOpcoesConfiguracaoOpenAI := TOpcoesConfiguracaoAdaptadorIA.Padrao(
+    CEndpointRespostasOpenAI, CModeloOpenAIRecomendado);
+  LOpcoesConfiguracaoOpenAI.Endpoint := 'http://api.exemplo.test';
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      TConfiguracaoOpenAI.Create('http://api.exemplo.test').Free;
+      TConfiguracaoOpenAI.Create(LOpcoesConfiguracaoOpenAI).Free;
     end), EConfiguracaoOpenAI);
 end;
 
 procedure TTestesOpenAI.Mapeador_DeveRejeitarMensagemDeFerramenta;
 var
-  LMapeador: IMapeadorOpenAI;
+  LMapeadorOpenAI: IMapeadorOpenAI;
 begin
-  LMapeador := TMapeadorOpenAI.Create;
+  LMapeadorOpenAI := TMapeadorOpenAI.Create;
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      LMapeador.CriarContratoRequisicao(
+      LMapeadorOpenAI.CriarContratoRequisicao(
         CriarRequisicao('modelo', TPapelMensagemIA.Ferramenta),
         'padrao').Free;
     end), EContratoOpenAI);
@@ -117,111 +129,111 @@ end;
 
 procedure TTestesOpenAI.Adaptador_DeveCriarRequisicaoResponsesAutenticada;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LJSON: TJSONObject;
+  LObjetoJSON: TJSONObject;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaOpenAISucesso));
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaOpenAISucesso));
   LAdaptador.Concluir(CriarRequisicao);
 
-  Assert.AreEqual(CEndpointRespostasOpenAI, LTransporte.UltimaRequisicao.URL);
-  Assert.AreEqual(TMetodoHTTP.Post, LTransporte.UltimaRequisicao.Metodo);
+  Assert.AreEqual(CEndpointRespostasOpenAI, LTransporteHTTPFalso.UltimaRequisicao.URL);
+  Assert.AreEqual(TMetodoHTTP.Post, LTransporteHTTPFalso.UltimaRequisicao.Metodo);
   Assert.AreEqual('Bearer sk-chave-falsa-de-teste',
-    ObterCabecalho(LTransporte.UltimaRequisicao, CCabecalhoAutorizacao));
+    ObterCabecalho(LTransporteHTTPFalso.UltimaRequisicao, CCabecalhoAutorizacao));
   Assert.AreEqual(CTipoConteudoJSON,
-    ObterCabecalho(LTransporte.UltimaRequisicao, CCabecalhoTipoConteudo));
-  LJSON := TJSONObject.ParseJSONValue(
-    LTransporte.UltimaRequisicao.Corpo) as TJSONObject;
+    ObterCabecalho(LTransporteHTTPFalso.UltimaRequisicao, CCabecalhoTipoConteudo));
+  LObjetoJSON := TJSONObject.ParseJSONValue(
+    LTransporteHTTPFalso.UltimaRequisicao.Corpo) as TJSONObject;
   try
-    Assert.IsNotNull(LJSON);
-    Assert.AreEqual('modelo-explicito', LJSON.GetValue<string>('model'));
-    Assert.IsFalse(LJSON.GetValue<Boolean>('store'));
-    Assert.IsNotNull(LJSON.GetValue('input'));
-    Assert.IsFalse(LTransporte.UltimaRequisicao.Corpo.Contains('papel'));
-    Assert.IsFalse(LTransporte.UltimaRequisicao.Corpo.Contains('conteudo'));
+    Assert.IsNotNull(LObjetoJSON);
+    Assert.AreEqual('modelo-explicito', LObjetoJSON.GetValue<string>('model'));
+    Assert.IsFalse(LObjetoJSON.GetValue<Boolean>('store'));
+    Assert.IsNotNull(LObjetoJSON.GetValue('input'));
+    Assert.IsFalse(LTransporteHTTPFalso.UltimaRequisicao.Corpo.Contains('papel'));
+    Assert.IsFalse(LTransporteHTTPFalso.UltimaRequisicao.Corpo.Contains('conteudo'));
   finally
-    LJSON.Free;
+    LObjetoJSON.Free;
   end;
 end;
 
 procedure TTestesOpenAI.Adaptador_DeveInformarCapacidadesImplementadas;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LCapacidades: ICapacidadesAdaptadorIA;
+  LCapacidadesAdaptador: ICapacidadesAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LCapacidades := LAdaptador.Capacidades;
-  Assert.IsNotNull(LCapacidades);
-  Assert.IsTrue(LCapacidades.SuportaTextoSincrono);
-  Assert.IsFalse(LCapacidades.SuportaFluxoContinuo);
-  Assert.IsFalse(LCapacidades.SuportaFerramentas);
-  Assert.IsFalse(LCapacidades.SuportaImagemEntrada);
-  Assert.IsFalse(LCapacidades.SuportaSaidaEstruturada);
-  Assert.AreEqual(0, LTransporte.QuantidadeChamadas);
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LCapacidadesAdaptador := LAdaptador.Capacidades;
+  Assert.IsNotNull(LCapacidadesAdaptador);
+  Assert.IsTrue(LCapacidadesAdaptador.SuportaTextoSincrono);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaFluxoContinuo);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaFerramentas);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaImagemEntrada);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaSaidaEstruturada);
+  Assert.AreEqual(0, LTransporteHTTPFalso.QuantidadeChamadas);
 end;
 
 procedure TTestesOpenAI.Adaptador_DeveUsarModeloPadraoQuandoModeloVazio;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LJSON: TJSONObject;
+  LObjetoJSON: TJSONObject;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaOpenAISucesso));
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaOpenAISucesso));
   LAdaptador.Concluir(CriarRequisicao(''));
-  LJSON := TJSONObject.ParseJSONValue(
-    LTransporte.UltimaRequisicao.Corpo) as TJSONObject;
+  LObjetoJSON := TJSONObject.ParseJSONValue(
+    LTransporteHTTPFalso.UltimaRequisicao.Corpo) as TJSONObject;
   try
     Assert.AreEqual(CModeloOpenAIRecomendado,
-      LJSON.GetValue<string>('model'));
+      LObjetoJSON.GetValue<string>('model'));
   finally
-    LJSON.Free;
+    LObjetoJSON.Free;
   end;
 end;
 
 procedure TTestesOpenAI.Adaptador_DeveMapearRespostaTextualEUso;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CRespostaOpenAISucesso));
-  LResposta := LAdaptador.Concluir(CriarRequisicao);
-  Assert.AreEqual('resp_teste_123', LResposta.Id);
-  Assert.AreEqual('Ola do OpenAI', LResposta.Mensagem.Texto);
-  Assert.AreEqual(TPapelMensagemIA.Assistente, LResposta.Mensagem.Papel);
-  Assert.AreEqual(Int64(11), LResposta.Uso.UnidadesEntrada);
-  Assert.AreEqual(Int64(7), LResposta.Uso.UnidadesSaida);
-  Assert.AreEqual(Int64(18), LResposta.Uso.UnidadesTotal);
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CRespostaOpenAISucesso));
+  LRespostaChat := LAdaptador.Concluir(CriarRequisicao);
+  Assert.AreEqual('resp_teste_123', LRespostaChat.Id);
+  Assert.AreEqual('Ola do OpenAI', LRespostaChat.Mensagem.Texto);
+  Assert.AreEqual(TPapelMensagemIA.Assistente, LRespostaChat.Mensagem.Papel);
+  Assert.AreEqual(Int64(11), LRespostaChat.Uso.UnidadesEntrada);
+  Assert.AreEqual(Int64(7), LRespostaChat.Uso.UnidadesSaida);
+  Assert.AreEqual(Int64(18), LRespostaChat.Uso.UnidadesTotal);
 end;
 
 procedure TTestesOpenAI.Adaptador_DevePreservarMultiplasPartesDeTexto;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
+  LRespostaChat: IRespostaChatIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
     RespostaHTTP(200, CRespostaOpenAIMultiplosTextos));
-  LResposta := LAdaptador.Concluir(CriarRequisicao);
-  Assert.AreEqual(2, Integer(Length(LResposta.Mensagem.Partes)));
-  Assert.AreEqual('primeira segunda', LResposta.Mensagem.Texto);
+  LRespostaChat := LAdaptador.Concluir(CriarRequisicao);
+  Assert.AreEqual(2, Integer(Length(LRespostaChat.Mensagem.Partes)));
+  Assert.AreEqual('primeira segunda', LRespostaChat.Mensagem.Texto);
 end;
 
 procedure TTestesOpenAI.Adaptador_DeveMapearErroSemExporCorpo;
 const
   CIdRequisicao = 'req_teste_456';
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
   LCapturou: Boolean;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
     RespostaHTTP(400, CRespostaOpenAIErro, CIdRequisicao));
   LCapturou := False;
   try
@@ -244,12 +256,12 @@ procedure TTestesOpenAI.Adaptador_DeveRejeitarJSONSucessoInvalidoSemExporCorpo;
 const
   CCorpoInvalido = '{"segredo":"nao-expor-este-valor"';
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
   LMensagem: string;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LTransporte.ProgramarResposta(RespostaHTTP(200, CCorpoInvalido));
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(RespostaHTTP(200, CCorpoInvalido));
   LMensagem := '';
   try
     LAdaptador.Concluir(CriarRequisicao);
@@ -263,33 +275,33 @@ end;
 
 procedure TTestesOpenAI.Adaptador_DeveFalharSemChaveAntesDoTransporte;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte, '');
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso, '');
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
       LAdaptador.Concluir(CriarRequisicao);
     end), EConfiguracaoOpenAI);
-  Assert.AreEqual(0, LTransporte.QuantidadeChamadas);
+  Assert.AreEqual(0, LTransporteHTTPFalso.QuantidadeChamadas);
 end;
 
 procedure TTestesOpenAI.Adaptador_DeveRespeitarCancelamentoAntesDoTransporte;
 var
-  LTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
-  LToken: ITokenCancelamentoIA;
+  LTokenCancelamento: ITokenCancelamentoIA;
 begin
-  LAdaptador := CriarAdaptador(LTransporte);
-  LToken := TTokenCancelamentoIA.Create;
-  LToken.Cancelar;
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTokenCancelamento := TTokenCancelamentoIA.Create;
+  LTokenCancelamento.Cancelar;
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      LAdaptador.Concluir(CriarRequisicao, LToken);
+      LAdaptador.Concluir(CriarRequisicao, LTokenCancelamento);
     end), EOperacaoCanceladaIA);
-  Assert.AreEqual(0, LTransporte.QuantidadeChamadas);
+  Assert.AreEqual(0, LTransporteHTTPFalso.QuantidadeChamadas);
 end;
 
 initialization

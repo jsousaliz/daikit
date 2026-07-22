@@ -21,6 +21,8 @@ uses
   Daikit.Infraestrutura.JSON.Constantes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Constantes.pas',
   Daikit.Infraestrutura.JSON.Excecoes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Excecoes.pas',
   Daikit.Infraestrutura.JSON.Serializador in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Serializador.pas',
+  Daikit.Adaptadores.Interfaces in '..\..\src\adaptadores\Daikit.Adaptadores.Interfaces.pas',
+  Daikit.Adaptadores.ChaveAPI in '..\..\src\adaptadores\Daikit.Adaptadores.ChaveAPI.pas',
   Daikit.Adaptadores.OpenAI.Constantes in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Constantes.pas',
   Daikit.Adaptadores.OpenAI.Excecoes in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Excecoes.pas',
   Daikit.Adaptadores.OpenAI.Contratos in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Contratos.pas',
@@ -47,8 +49,12 @@ end;
 
 var
   LModelo: string;
-  LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
+  LTransporteHTTP: ITransporteHTTP;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LConfiguracaoOpenAI: IConfiguracaoOpenAI;
+  LMapeadorOpenAI: IMapeadorOpenAI;
+  LAdaptadorOpenAI: IAdaptadorIA;
+  LRespostaChat: IRespostaChatIA;
 begin
   ReportMemoryLeaksOnShutdown := True;
   if GetEnvironmentVariable(CVariavelExecutar) <> CValorExecutar then
@@ -67,12 +73,16 @@ begin
   if LModelo = '' then
     LModelo := CModeloOpenAIRecomendado;
   try
-    LAdaptador := TAdaptadorOpenAI.Create(TTransporteHTTPClient.Create,
-      TFonteChaveOpenAIAmbiente.Create, TConfiguracaoOpenAI.Create,
-      TMapeadorOpenAI.Create);
-    LResposta := LAdaptador.Concluir(CriarRequisicao(LModelo));
-    Writeln('SUCESSO: id=', LResposta.Id, '; resposta=',
-      LResposta.Mensagem.Texto);
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(
+      CVariavelAmbienteChaveOpenAI);
+    LConfiguracaoOpenAI := TConfiguracaoOpenAI.Create;
+    LMapeadorOpenAI := TMapeadorOpenAI.Create;
+    LAdaptadorOpenAI := TAdaptadorOpenAI.Create(LTransporteHTTP,
+      LFonteChaveAPI, LConfiguracaoOpenAI, LMapeadorOpenAI);
+    LRespostaChat := LAdaptadorOpenAI.Concluir(CriarRequisicao(LModelo));
+    Writeln('SUCESSO: id=', LRespostaChat.Id, '; resposta=',
+      LRespostaChat.Mensagem.Texto);
   except
     on E: Exception do
     begin

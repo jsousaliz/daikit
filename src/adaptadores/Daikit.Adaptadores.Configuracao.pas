@@ -4,10 +4,21 @@ interface
 
 uses
   System.SysUtils,
+  Daikit.Infraestrutura.HTTP.Constantes,
   Daikit.Adaptadores.Interfaces;
 
 type
   TClasseExcecaoConfiguracaoAdaptadorIA = class of Exception;
+
+  TOpcoesConfiguracaoAdaptadorIA = record
+    Endpoint: string;
+    ModeloPadrao: string;
+    TimeoutConexaoMS: Integer;
+    TimeoutRespostaMS: Integer;
+    LimiteRespostaBytes: Int64;
+    class function Padrao(const AEndpoint,
+      AModeloPadrao: string): TOpcoesConfiguracaoAdaptadorIA; static;
+  end;
 
   TConfiguracaoAdaptadorIA = class abstract(TInterfacedObject,
     IConfiguracaoAdaptadorIA)
@@ -18,9 +29,8 @@ type
     FTimeoutRespostaMS: Integer;
     FLimiteRespostaBytes: Int64;
   protected
-    constructor Create(const ANomeAdaptador, AEndpoint,
-      AModeloPadrao: string; ATimeoutConexaoMS, ATimeoutRespostaMS: Integer;
-      ALimiteRespostaBytes: Int64;
+    constructor Create(const ANomeAdaptador: string;
+      const AOpcoes: TOpcoesConfiguracaoAdaptadorIA;
       AClasseExcecao: TClasseExcecaoConfiguracaoAdaptadorIA);
   public
     function ObterEndpoint: string;
@@ -35,19 +45,28 @@ implementation
 uses
   System.Net.URLClient;
 
-constructor TConfiguracaoAdaptadorIA.Create(const ANomeAdaptador, AEndpoint,
-  AModeloPadrao: string; ATimeoutConexaoMS, ATimeoutRespostaMS: Integer;
-  ALimiteRespostaBytes: Int64;
+class function TOpcoesConfiguracaoAdaptadorIA.Padrao(const AEndpoint,
+  AModeloPadrao: string): TOpcoesConfiguracaoAdaptadorIA;
+begin
+  Result.Endpoint := AEndpoint;
+  Result.ModeloPadrao := AModeloPadrao;
+  Result.TimeoutConexaoMS := CTimeoutConexaoPadraoMS;
+  Result.TimeoutRespostaMS := CTimeoutRespostaPadraoMS;
+  Result.LimiteRespostaBytes := CLimiteRespostaPadraoBytes;
+end;
+
+constructor TConfiguracaoAdaptadorIA.Create(const ANomeAdaptador: string;
+  const AOpcoes: TOpcoesConfiguracaoAdaptadorIA;
   AClasseExcecao: TClasseExcecaoConfiguracaoAdaptadorIA);
 var
   LURI: TURI;
 begin
   inherited Create;
-  if Trim(AEndpoint) = '' then
+  if Trim(AOpcoes.Endpoint) = '' then
     raise AClasseExcecao.CreateFmt(
       'O endpoint %s deve ser informado.', [ANomeAdaptador]);
   try
-    LURI := TURI.Create(AEndpoint);
+    LURI := TURI.Create(AOpcoes.Endpoint);
   except
     on E: Exception do
       raise AClasseExcecao.CreateFmt(
@@ -56,23 +75,23 @@ begin
   if not SameText(LURI.Scheme, 'https') or (Trim(LURI.Host) = '') then
     raise AClasseExcecao.CreateFmt(
       'O endpoint %s deve possuir host e utilizar HTTPS.', [ANomeAdaptador]);
-  if Trim(AModeloPadrao) = '' then
+  if Trim(AOpcoes.ModeloPadrao) = '' then
     raise AClasseExcecao.CreateFmt(
       'O modelo padrao %s deve ser informado.', [ANomeAdaptador]);
-  if ATimeoutConexaoMS <= 0 then
+  if AOpcoes.TimeoutConexaoMS <= 0 then
     raise AClasseExcecao.Create(
       'O timeout de conexao deve ser maior que zero.');
-  if ATimeoutRespostaMS <= 0 then
+  if AOpcoes.TimeoutRespostaMS <= 0 then
     raise AClasseExcecao.Create(
       'O timeout de resposta deve ser maior que zero.');
-  if ALimiteRespostaBytes <= 0 then
+  if AOpcoes.LimiteRespostaBytes <= 0 then
     raise AClasseExcecao.Create(
       'O limite da resposta deve ser maior que zero.');
-  FEndpoint := AEndpoint;
-  FModeloPadrao := AModeloPadrao;
-  FTimeoutConexaoMS := ATimeoutConexaoMS;
-  FTimeoutRespostaMS := ATimeoutRespostaMS;
-  FLimiteRespostaBytes := ALimiteRespostaBytes;
+  FEndpoint := AOpcoes.Endpoint;
+  FModeloPadrao := AOpcoes.ModeloPadrao;
+  FTimeoutConexaoMS := AOpcoes.TimeoutConexaoMS;
+  FTimeoutRespostaMS := AOpcoes.TimeoutRespostaMS;
+  FLimiteRespostaBytes := AOpcoes.LimiteRespostaBytes;
 end;
 
 function TConfiguracaoAdaptadorIA.ObterEndpoint: string;

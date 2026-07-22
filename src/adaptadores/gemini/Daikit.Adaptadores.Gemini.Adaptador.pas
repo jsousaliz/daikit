@@ -12,11 +12,11 @@ uses
 type
   TAdaptadorGemini = class(TInterfacedObject, IAdaptadorIA)
   private
-    FTransporte: ITransporteHTTP;
+    FTransporteHTTP: ITransporteHTTP;
     FFonteChaveAPI: IFonteChaveAPI;
-    FConfiguracao: IConfiguracaoGemini;
-    FMapeador: IMapeadorGemini;
-    FCapacidades: ICapacidadesAdaptadorIA;
+    FConfiguracaoGemini: IConfiguracaoGemini;
+    FMapeadorGemini: IMapeadorGemini;
+    FCapacidadesAdaptador: ICapacidadesAdaptadorIA;
   public
     constructor Create(const ATransporte: ITransporteHTTP;
       const AFonteChaveAPI: IFonteChaveAPI;
@@ -45,66 +45,66 @@ uses
 
 function NormalizarEnvelopeErro(const ACorpo: string): string;
 var
-  LJSON: TJSONValue;
-  LLista: TJSONArray;
+  LValorJSON: TJSONValue;
+  LListaJSON: TJSONArray;
 begin
   Result := '';
-  LJSON := nil;
+  LValorJSON := nil;
   try
     try
-      LJSON := TJSONObject.ParseJSONValue(ACorpo);
-      if LJSON is TJSONObject then
-        Result := LJSON.ToJSON
-      else if LJSON is TJSONArray then
+      LValorJSON := TJSONObject.ParseJSONValue(ACorpo);
+      if LValorJSON is TJSONObject then
+        Result := LValorJSON.ToJSON
+      else if LValorJSON is TJSONArray then
       begin
-        LLista := TJSONArray(LJSON);
-        if (LLista.Count > 0) and
-          (LLista.Items[0] is TJSONObject) then
-          Result := LLista.Items[0].ToJSON;
+        LListaJSON := TJSONArray(LValorJSON);
+        if (LListaJSON.Count > 0) and
+          (LListaJSON.Items[0] is TJSONObject) then
+          Result := LListaJSON.Items[0].ToJSON;
       end;
     except
       Result := '';
     end;
   finally
-    LJSON.Free;
+    LValorJSON.Free;
   end;
 end;
 
 procedure LancarErroResposta(const AResposta: IRespostaHTTP);
 var
-  LEnvelope: TEnvelopeErroGemini;
-  LCorpoErro: string;
-  LCodigo: Integer;
+  LEnvelopeErroGemini: TEnvelopeErroGemini;
+  LJSONErro: string;
+  LCodigoErro: Integer;
   LTipoErro: string;
   LIdRequisicao: string;
 begin
-  LCodigo := 0;
+  LCodigoErro := 0;
   LTipoErro := '';
   LIdRequisicao := TCabecalhoHTTP.ObterValor(AResposta.Cabecalhos,
     CCabecalhoIdRequisicaoGemini);
-  LEnvelope := nil;
+  LEnvelopeErroGemini := nil;
   try
     try
-      LCorpoErro := NormalizarEnvelopeErro(AResposta.Corpo);
-      if LCorpoErro <> '' then
-        LEnvelope := TSerializadorJSON.Desserializar<TEnvelopeErroGemini>(
-          LCorpoErro);
-      if (LEnvelope <> nil) and (LEnvelope.Erro <> nil) then
+      LJSONErro := NormalizarEnvelopeErro(AResposta.Corpo);
+      if LJSONErro <> '' then
+        LEnvelopeErroGemini := TSerializadorJSON.Desserializar<TEnvelopeErroGemini>(
+          LJSONErro);
+      if (LEnvelopeErroGemini <> nil) and (LEnvelopeErroGemini.Erro <> nil) then
       begin
-        LCodigo := LEnvelope.Erro.Codigo;
-        LTipoErro := LEnvelope.Erro.Status;
+        LCodigoErro := LEnvelopeErroGemini.Erro.Codigo;
+        LTipoErro := LEnvelopeErroGemini.Erro.Status;
       end;
     except
       on E: ESerializacaoJSON do
       begin
-        LCodigo := 0;
+        LCodigoErro := 0;
         LTipoErro := '';
       end;
     end;
   finally
-    LEnvelope.Free;
+    LEnvelopeErroGemini.Free;
   end;
-  raise ERespostaGemini.Create(AResposta.Status, LCodigo, LTipoErro,
+  raise ERespostaGemini.Create(AResposta.Status, LCodigoErro, LTipoErro,
     LIdRequisicao);
 end;
 
@@ -121,66 +121,75 @@ begin
   if AConfiguracao.ModoContexto <> TModoContextoGemini.Local then
     raise EConfiguracaoGemini.Create(
       'O provedor Gemini suporta apenas contexto local nesta versao.');
-  FTransporte := ATransporte;
+  FTransporteHTTP := ATransporte;
   FFonteChaveAPI := AFonteChaveAPI;
-  FConfiguracao := AConfiguracao;
-  FMapeador := AMapeador;
-  FCapacidades := TCapacidadesAdaptadorIA.SomenteTextoSincrono;
+  FConfiguracaoGemini := AConfiguracao;
+  FMapeadorGemini := AMapeador;
+  FCapacidadesAdaptador := TCapacidadesAdaptadorIA.SomenteTextoSincrono;
 end;
 
 function TAdaptadorGemini.ObterCapacidades: ICapacidadesAdaptadorIA;
 begin
-  Result := FCapacidades;
+  Result := FCapacidadesAdaptador;
 end;
 
 function TAdaptadorGemini.Concluir(const ARequisicao: IRequisicaoChatIA;
   const ACancelamento: ITokenCancelamentoIA): IRespostaChatIA;
 var
-  LChave: string;
-  LContratoRequisicao: TRequisicaoInteracaoGemini;
-  LContratoResposta: TRespostaInteracaoGemini;
-  LCabecalhos: TArray<TCabecalhoHTTP>;
+  LChaveAPI: string;
+  LContratoRequisicaoGemini: TRequisicaoInteracaoGemini;
+  LContratoRespostaGemini: TRespostaInteracaoGemini;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
   LRequisicaoHTTP: IRequisicaoHTTP;
   LRespostaHTTP: IRespostaHTTP;
-  LCorpo: string;
+  LJSONRequisicao: string;
 begin
   if ARequisicao = nil then
     raise EContratoGemini.Create('A requisicao canonica deve ser informada.');
   if (ACancelamento <> nil) and ACancelamento.FoiCancelado then
     raise EOperacaoCanceladaIA.Create('A operacao Gemini foi cancelada.');
-  LChave := Trim(FFonteChaveAPI.ObterChaveAPI);
-  if LChave = '' then
+  LChaveAPI := Trim(FFonteChaveAPI.ObterChaveAPI);
+  if LChaveAPI = '' then
     raise EConfiguracaoGemini.Create(
       'A chave da API Gemini nao foi fornecida pela fonte configurada.');
-  LContratoRequisicao := FMapeador.CriarContratoRequisicao(ARequisicao,
-    FConfiguracao.ModeloPadrao, FConfiguracao.MaximoTokens);
+  LContratoRequisicaoGemini := FMapeadorGemini.CriarContratoRequisicao(ARequisicao,
+    FConfiguracaoGemini.ModeloPadrao, FConfiguracaoGemini.MaximoTokens);
   try
-    LCorpo := TSerializadorJSON.Serializar(LContratoRequisicao,
+    LJSONRequisicao := TSerializadorJSON.Serializar(LContratoRequisicaoGemini,
       COpcoesJSONSemVazios);
   finally
-    LContratoRequisicao.Free;
+    LContratoRequisicaoGemini.Free;
   end;
-  SetLength(LCabecalhos, CQuantidadeCabecalhosGemini);
-  LCabecalhos[CIndiceChaveGemini] := TCabecalhoHTTP.Criar(
-    CCabecalhoChaveGemini, LChave);
-  LCabecalhos[CIndiceTipoConteudoGemini] := TCabecalhoHTTP.Criar(
+  SetLength(LCabecalhosHTTP, CQuantidadeCabecalhosGemini);
+  LCabecalhosHTTP[CIndiceChaveGemini] := TCabecalhoHTTP.Criar(
+    CCabecalhoChaveGemini, LChaveAPI);
+  LCabecalhosHTTP[CIndiceTipoConteudoGemini] := TCabecalhoHTTP.Criar(
     CCabecalhoTipoConteudoGemini, CTipoConteudoJSONGemini);
-  LCabecalhos[CIndiceAceiteGemini] := TCabecalhoHTTP.Criar(
+  LCabecalhosHTTP[CIndiceAceiteGemini] := TCabecalhoHTTP.Criar(
     CCabecalhoAceiteGemini, CTipoConteudoJSONGemini);
-  LRequisicaoHTTP := TRequisicaoHTTP.Create(TMetodoHTTP.Post,
-    FConfiguracao.Endpoint, LCabecalhos, LCorpo,
-    FConfiguracao.TimeoutConexaoMS, FConfiguracao.TimeoutRespostaMS,
-    FConfiguracao.LimiteRespostaBytes);
-  LRespostaHTTP := FTransporte.Enviar(LRequisicaoHTTP, ACancelamento);
+  LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+  LOpcoesRequisicaoHTTP.Metodo := TMetodoHTTP.Post;
+  LOpcoesRequisicaoHTTP.URL := FConfiguracaoGemini.Endpoint;
+  LOpcoesRequisicaoHTTP.Cabecalhos := LCabecalhosHTTP;
+  LOpcoesRequisicaoHTTP.Corpo := LJSONRequisicao;
+  LOpcoesRequisicaoHTTP.TimeoutConexaoMS :=
+    FConfiguracaoGemini.TimeoutConexaoMS;
+  LOpcoesRequisicaoHTTP.TimeoutRespostaMS :=
+    FConfiguracaoGemini.TimeoutRespostaMS;
+  LOpcoesRequisicaoHTTP.LimiteRespostaBytes :=
+    FConfiguracaoGemini.LimiteRespostaBytes;
+  LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
+  LRespostaHTTP := FTransporteHTTP.Enviar(LRequisicaoHTTP, ACancelamento);
   if LRespostaHTTP = nil then
     raise EContratoGemini.Create(
       'O transporte HTTP nao retornou uma resposta para a Gemini.');
   if not LRespostaHTTP.FoiSucesso then
     LancarErroResposta(LRespostaHTTP);
-  LContratoResposta := nil;
+  LContratoRespostaGemini := nil;
   try
     try
-      LContratoResposta :=
+      LContratoRespostaGemini :=
         TSerializadorJSON.Desserializar<TRespostaInteracaoGemini>(
           LRespostaHTTP.Corpo);
     except
@@ -188,9 +197,9 @@ begin
         raise EContratoGemini.Create(
           'A API Gemini retornou um JSON de sucesso invalido.');
     end;
-    Result := FMapeador.MapearResposta(LContratoResposta);
+    Result := FMapeadorGemini.MapearResposta(LContratoRespostaGemini);
   finally
-    LContratoResposta.Free;
+    LContratoRespostaGemini.Free;
   end;
 end;
 

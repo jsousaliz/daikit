@@ -111,6 +111,7 @@
     <DCCReference Include="fixtures\Daikit.Testes.Fixtures.Anthropic.pas"/>
     <DCCReference Include="fixtures\Daikit.Testes.Fixtures.Gemini.pas"/>
     <DCCReference Include="mock\Daikit.Testes.AdaptadorFalso.pas"/>
+    <DCCReference Include="mock\Daikit.Testes.ProvedorFalso.pas"/>
     <DCCReference Include="mock\Daikit.Testes.TransporteHTTPFalso.pas"/>
     <BuildConfiguration Include="Base">
       <Key>Base</Key>

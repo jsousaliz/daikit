@@ -129,30 +129,30 @@ implementation
 
 destructor TRequisicaoRespostasOpenAI.Destroy;
 var
-  LMensagem: TMensagemEntradaOpenAI;
+  LMensagemEntradaOpenAI: TMensagemEntradaOpenAI;
 begin
-  for LMensagem in FEntrada do
-    LMensagem.Free;
+  for LMensagemEntradaOpenAI in FEntrada do
+    LMensagemEntradaOpenAI.Free;
   FEntrada := nil;
   inherited;
 end;
 
 destructor TItemSaidaOpenAI.Destroy;
 var
-  LConteudo: TConteudoSaidaOpenAI;
+  LConteudoSaidaOpenAI: TConteudoSaidaOpenAI;
 begin
-  for LConteudo in FConteudo do
-    LConteudo.Free;
+  for LConteudoSaidaOpenAI in FConteudo do
+    LConteudoSaidaOpenAI.Free;
   FConteudo := nil;
   inherited;
 end;
 
 destructor TRespostaOpenAI.Destroy;
 var
-  LItem: TItemSaidaOpenAI;
+  LItemSaidaOpenAI: TItemSaidaOpenAI;
 begin
-  for LItem in FSaida do
-    LItem.Free;
+  for LItemSaidaOpenAI in FSaida do
+    LItemSaidaOpenAI.Free;
   FSaida := nil;
   FUso.Free;
   FErro.Free;

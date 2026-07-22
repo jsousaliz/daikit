@@ -11,9 +11,9 @@ uses
 type
   TTransporteHTTPComLog = class(TInterfacedObject, ITransporteHTTP)
   private
-    FTransporte: ITransporteHTTP;
-    FReceptor: IReceptorLogIA;
-    FProvedor: string;
+    FTransporteHTTP: ITransporteHTTP;
+    FReceptorLog: IReceptorLogIA;
+    FNomeProvedor: string;
     function Sanitizar(const AJSON: string): string;
     procedure Publicar(ATipo: TTipoEventoLogIA; ANivel: TNivelLogIA;
       const AMensagem: string; AStatusHTTP: Integer);
@@ -42,26 +42,26 @@ begin
   if AReceptor = nil then
     raise EValidacaoHTTP.Create(
       'O receptor do log deve ser informado.');
-  FTransporte := ATransporte;
-  FReceptor := AReceptor;
-  FProvedor := AProvedor;
+  FTransporteHTTP := ATransporte;
+  FReceptorLog := AReceptor;
+  FNomeProvedor := AProvedor;
 end;
 
 function TTransporteHTTPComLog.Enviar(const ARequisicao: IRequisicaoHTTP;
   const ACancelamento: ITokenCancelamentoIA): IRespostaHTTP;
 var
-  LMensagem: string;
-  LNivel: TNivelLogIA;
+  LMensagemLog: string;
+  LNivelLog: TNivelLogIA;
 begin
   if ARequisicao = nil then
-    LMensagem := ''
+    LMensagemLog := ''
   else
-    LMensagem := Sanitizar(ARequisicao.Corpo);
+    LMensagemLog := Sanitizar(ARequisicao.Corpo);
   Publicar(TTipoEventoLogIA.Requisicao, TNivelLogIA.Informacao,
-    LMensagem, CStatusHTTPNaoInformado);
+    LMensagemLog, CStatusHTTPNaoInformado);
 
   try
-    Result := FTransporte.Enviar(ARequisicao, ACancelamento);
+    Result := FTransporteHTTP.Enviar(ARequisicao, ACancelamento);
     if Result = nil then
     begin
       Publicar(TTipoEventoLogIA.Resposta, TNivelLogIA.Erro, '',
@@ -70,10 +70,10 @@ begin
     end;
 
     if Result.FoiSucesso then
-      LNivel := TNivelLogIA.Informacao
+      LNivelLog := TNivelLogIA.Informacao
     else
-      LNivel := TNivelLogIA.Erro;
-    Publicar(TTipoEventoLogIA.Resposta, LNivel, Sanitizar(Result.Corpo),
+      LNivelLog := TNivelLogIA.Erro;
+    Publicar(TTipoEventoLogIA.Resposta, LNivelLog, Sanitizar(Result.Corpo),
       Result.Status);
   except
     on E: EOperacaoCanceladaIA do
@@ -94,17 +94,17 @@ end;
 procedure TTransporteHTTPComLog.Publicar(ATipo: TTipoEventoLogIA;
   ANivel: TNivelLogIA; const AMensagem: string; AStatusHTTP: Integer);
 begin
-  FReceptor.Registrar(TEventoLogIA.Create(ATipo, ANivel, FProvedor,
+  FReceptorLog.Registrar(TEventoLogIA.Create(ATipo, ANivel, FNomeProvedor,
     AMensagem, AStatusHTTP));
 end;
 
 function TTransporteHTTPComLog.Sanitizar(const AJSON: string): string;
 var
-  LTruncado: Boolean;
+  LJSONTruncado: Boolean;
 begin
   if AJSON = '' then
     Exit('');
-  Result := TSanitizadorJSON.Sanitizar(AJSON, True, MaxInt, LTruncado);
+  Result := TSanitizadorJSON.Sanitizar(AJSON, True, MaxInt, LJSONTruncado);
 end;
 
 end.

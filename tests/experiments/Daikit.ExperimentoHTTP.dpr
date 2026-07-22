@@ -21,19 +21,21 @@ const
   CCodigoSaidaErro = 2;
 
 var
-  LTransporte: ITransporteHTTP;
-  LRequisicao: IRequisicaoHTTP;
-  LResposta: IRespostaHTTP;
+  LTransporteHTTP: ITransporteHTTP;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
+  LRespostaHTTP: IRespostaHTTP;
 begin
   ReportMemoryLeaksOnShutdown := True;
   try
-    LTransporte := TTransporteHTTPClient.Create;
-    LRequisicao := TRequisicaoHTTP.Create(TMetodoHTTP.Get,
-      CEnderecoExperimentoTLS, nil);
-    LResposta := LTransporte.Enviar(LRequisicao);
-    Writeln('Status HTTPS: ', LResposta.Status, ' ', LResposta.Motivo);
-    Writeln('Bytes recebidos: ', TEncoding.UTF8.GetByteCount(LResposta.Corpo));
-    if not LResposta.FoiSucesso then
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+    LOpcoesRequisicaoHTTP.URL := CEnderecoExperimentoTLS;
+    LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
+    LRespostaHTTP := LTransporteHTTP.Enviar(LRequisicaoHTTP);
+    Writeln('Status HTTPS: ', LRespostaHTTP.Status, ' ', LRespostaHTTP.Motivo);
+    Writeln('Bytes recebidos: ', TEncoding.UTF8.GetByteCount(LRespostaHTTP.Corpo));
+    if not LRespostaHTTP.FoiSucesso then
       ExitCode := CCodigoSaidaRespostaInvalida;
   except
     on E: Exception do

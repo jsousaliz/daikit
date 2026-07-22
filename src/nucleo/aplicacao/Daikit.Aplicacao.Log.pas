@@ -32,8 +32,8 @@ type
   TEventoLogIA = class(TInterfacedObject, IEventoLogIA)
   private
     FDataHoraUTC: TDateTime;
-    FTipo: TTipoEventoLogIA;
-    FNivel: TNivelLogIA;
+    FTipoEventoLog: TTipoEventoLogIA;
+    FNivelLog: TNivelLogIA;
     FProvedor: string;
     FMensagem: string;
     FStatusHTTP: Integer;
@@ -60,8 +60,8 @@ constructor TEventoLogIA.Create(ATipo: TTipoEventoLogIA;
 begin
   inherited Create;
   FDataHoraUTC := TTimeZone.Local.ToUniversalTime(Now);
-  FTipo := ATipo;
-  FNivel := ANivel;
+  FTipoEventoLog := ATipo;
+  FNivelLog := ANivel;
   FProvedor := AProvedor;
   FMensagem := AMensagem;
   FStatusHTTP := AStatusHTTP;
@@ -79,7 +79,7 @@ end;
 
 function TEventoLogIA.ObterNivel: TNivelLogIA;
 begin
-  Result := FNivel;
+  Result := FNivelLog;
 end;
 
 function TEventoLogIA.ObterProvedor: string;
@@ -94,7 +94,7 @@ end;
 
 function TEventoLogIA.ObterTipo: TTipoEventoLogIA;
 begin
-  Result := FTipo;
+  Result := FTipoEventoLog;
 end;
 
 end.

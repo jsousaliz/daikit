@@ -41,9 +41,9 @@ type
   IContextoIA = interface
     ['{59B74A2F-7E79-4A4D-91AE-13819F17132C}']
     procedure Adicionar(const AMensagem: IMensagemIA);
-    function AdicionarSistema(const ATexto: string): IMensagemIA;
-    function AdicionarUsuario(const ATexto: string): IMensagemIA;
-    function AdicionarAssistente(const ATexto: string): IMensagemIA;
+    function AdicionarMensagemSistema(const ATexto: string): IMensagemIA;
+    function AdicionarMensagemUsuario(const ATexto: string): IMensagemIA;
+    function AdicionarMensagemAssistente(const ATexto: string): IMensagemIA;
     function ObterMensagens: TArray<IMensagemIA>;
     function ObterQuantidade: Integer;
     procedure Limpar;

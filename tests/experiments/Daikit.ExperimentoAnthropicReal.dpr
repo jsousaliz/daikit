@@ -21,6 +21,8 @@ uses
   Daikit.Infraestrutura.JSON.Constantes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Constantes.pas',
   Daikit.Infraestrutura.JSON.Excecoes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Excecoes.pas',
   Daikit.Infraestrutura.JSON.Serializador in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Serializador.pas',
+  Daikit.Adaptadores.Interfaces in '..\..\src\adaptadores\Daikit.Adaptadores.Interfaces.pas',
+  Daikit.Adaptadores.ChaveAPI in '..\..\src\adaptadores\Daikit.Adaptadores.ChaveAPI.pas',
   Daikit.Adaptadores.Anthropic.Constantes in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Constantes.pas',
   Daikit.Adaptadores.Anthropic.Excecoes in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Excecoes.pas',
   Daikit.Adaptadores.Anthropic.Contratos in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Contratos.pas',
@@ -47,8 +49,12 @@ end;
 
 var
   LModelo: string;
-  LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
+  LTransporteHTTP: ITransporteHTTP;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LConfiguracaoAnthropic: IConfiguracaoAnthropic;
+  LMapeadorAnthropic: IMapeadorAnthropic;
+  LAdaptadorAnthropic: IAdaptadorIA;
+  LRespostaChat: IRespostaChatIA;
 begin
   ReportMemoryLeaksOnShutdown := True;
   if GetEnvironmentVariable(CVariavelExecutar) <> CValorExecutar then
@@ -67,12 +73,16 @@ begin
   if LModelo = '' then
     LModelo := CModeloAnthropicPadrao;
   try
-    LAdaptador := TAdaptadorAnthropic.Create(TTransporteHTTPClient.Create,
-      TFonteChaveAnthropicAmbiente.Create, TConfiguracaoAnthropic.Create,
-      TMapeadorAnthropic.Create);
-    LResposta := LAdaptador.Concluir(CriarRequisicao(LModelo));
-    Writeln('SUCESSO: id=', LResposta.Id, '; resposta=',
-      LResposta.Mensagem.Texto);
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(
+      CVariavelAmbienteChaveAnthropic);
+    LConfiguracaoAnthropic := TConfiguracaoAnthropic.Create;
+    LMapeadorAnthropic := TMapeadorAnthropic.Create;
+    LAdaptadorAnthropic := TAdaptadorAnthropic.Create(LTransporteHTTP,
+      LFonteChaveAPI, LConfiguracaoAnthropic, LMapeadorAnthropic);
+    LRespostaChat := LAdaptadorAnthropic.Concluir(CriarRequisicao(LModelo));
+    Writeln('SUCESSO: id=', LRespostaChat.Id, '; resposta=',
+      LRespostaChat.Mensagem.Texto);
   except
     on E: Exception do
     begin

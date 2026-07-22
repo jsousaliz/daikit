@@ -32,15 +32,15 @@ function TMapeadorAnthropic.CriarContratoRequisicao(
   AMaximoTokens: Integer): TRequisicaoMensagensAnthropic;
 var
   LMensagem: IMensagemIA;
-  LMensagens: TObjectList<TMensagemEntradaAnthropic>;
-  LSistema: TStringBuilder;
-  LEntrada: TMensagemEntradaAnthropic;
+  LMensagensEntradaAnthropic: TObjectList<TMensagemEntradaAnthropic>;
+  LInstrucaoSistema: TStringBuilder;
+  LMensagemEntradaAnthropic: TMensagemEntradaAnthropic;
 begin
   if ARequisicao = nil then
     raise EContratoAnthropic.Create('A requisicao canonica deve ser informada.');
   Result := TRequisicaoMensagensAnthropic.Create;
-  LMensagens := TObjectList<TMensagemEntradaAnthropic>.Create(True);
-  LSistema := TStringBuilder.Create;
+  LMensagensEntradaAnthropic := TObjectList<TMensagemEntradaAnthropic>.Create(True);
+  LInstrucaoSistema := TStringBuilder.Create;
   try
     try
       Result.Modelo := Trim(ARequisicao.Modelo);
@@ -51,46 +51,46 @@ begin
         case LMensagem.Papel of
           TPapelMensagemIA.Sistema:
             begin
-              if LSistema.Length > 0 then
-                LSistema.Append(CSeparadorMensagensSistemaAnthropic);
-              LSistema.Append(LMensagem.Texto);
+              if LInstrucaoSistema.Length > 0 then
+                LInstrucaoSistema.Append(CSeparadorMensagensSistemaAnthropic);
+              LInstrucaoSistema.Append(LMensagem.Texto);
             end;
           TPapelMensagemIA.Usuario, TPapelMensagemIA.Assistente:
             begin
-              LEntrada := TMensagemEntradaAnthropic.Create;
+              LMensagemEntradaAnthropic := TMensagemEntradaAnthropic.Create;
               if LMensagem.Papel = TPapelMensagemIA.Usuario then
-                LEntrada.Papel := CPapelUsuarioAnthropic
+                LMensagemEntradaAnthropic.Papel := CPapelUsuarioAnthropic
               else
-                LEntrada.Papel := CPapelAssistenteAnthropic;
-              LEntrada.Conteudo := LMensagem.Texto;
-              LMensagens.Add(LEntrada);
+                LMensagemEntradaAnthropic.Papel := CPapelAssistenteAnthropic;
+              LMensagemEntradaAnthropic.Conteudo := LMensagem.Texto;
+              LMensagensEntradaAnthropic.Add(LMensagemEntradaAnthropic);
             end;
         else
           raise EContratoAnthropic.Create(
             'Mensagens de ferramenta ainda nao sao suportadas pelo provedor Anthropic textual.');
         end;
-      if LMensagens.Count = 0 then
+      if LMensagensEntradaAnthropic.Count = 0 then
         raise EContratoAnthropic.Create(
           'A Anthropic exige ao menos uma mensagem de usuario ou assistente.');
-      Result.Sistema := LSistema.ToString;
-      Result.Mensagens := LMensagens.ToArray;
-      LMensagens.OwnsObjects := False;
+      Result.Sistema := LInstrucaoSistema.ToString;
+      Result.Mensagens := LMensagensEntradaAnthropic.ToArray;
+      LMensagensEntradaAnthropic.OwnsObjects := False;
     except
       Result.Free;
       raise;
     end;
   finally
-    LSistema.Free;
-    LMensagens.Free;
+    LInstrucaoSistema.Free;
+    LMensagensEntradaAnthropic.Free;
   end;
 end;
 
 function TMapeadorAnthropic.MapearResposta(
   AResposta: TRespostaAnthropic): IRespostaChatIA;
 var
-  LConteudo: TConteudoSaidaAnthropic;
-  LPartesLista: TList<IParteConteudoIA>;
-  LPartes: TArray<IParteConteudoIA>;
+  LConteudoSaidaAnthropic: TConteudoSaidaAnthropic;
+  LListaPartesConteudo: TList<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
   LMensagem: IMensagemIA;
   LUso: IUsoIA;
 begin
@@ -99,20 +99,20 @@ begin
   if not SameText(AResposta.Tipo, CTipoMensagemAnthropic) or
     not SameText(AResposta.Papel, CPapelAssistenteAnthropic) then
     raise EContratoAnthropic.Create('A resposta Anthropic nao e uma mensagem de assistente.');
-  LPartesLista := TList<IParteConteudoIA>.Create;
+  LListaPartesConteudo := TList<IParteConteudoIA>.Create;
   try
-    for LConteudo in AResposta.Conteudo do
-      if SameText(LConteudo.Tipo, CTipoTextoAnthropic) and
-        (Trim(LConteudo.Texto) <> '') then
-        LPartesLista.Add(TParteConteudoTextoIA.Create(LConteudo.Texto));
-    if LPartesLista.Count = 0 then
+    for LConteudoSaidaAnthropic in AResposta.Conteudo do
+      if SameText(LConteudoSaidaAnthropic.Tipo, CTipoTextoAnthropic) and
+        (Trim(LConteudoSaidaAnthropic.Texto) <> '') then
+        LListaPartesConteudo.Add(TParteConteudoTextoIA.Create(LConteudoSaidaAnthropic.Texto));
+    if LListaPartesConteudo.Count = 0 then
       raise EContratoAnthropic.Create(
         'A resposta Anthropic nao possui conteudo textual.');
-    LPartes := LPartesLista.ToArray;
+    LPartesConteudo := LListaPartesConteudo.ToArray;
   finally
-    LPartesLista.Free;
+    LListaPartesConteudo.Free;
   end;
-  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartes);
+  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartesConteudo);
   LUso := nil;
   if AResposta.Uso <> nil then
     LUso := TUsoIA.Create(AResposta.Uso.TokensEntrada,

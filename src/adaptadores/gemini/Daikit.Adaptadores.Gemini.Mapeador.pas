@@ -10,7 +10,7 @@ uses
 type
   TMapeadorGemini = class(TInterfacedObject, IMapeadorGemini)
   private
-    FArmazenamentoContexto: IArmazenamentoContextoGemini;
+    FArmazenamentoContextoGemini: IArmazenamentoContextoGemini;
   public
     constructor Create(
       const AArmazenamentoContexto: IArmazenamentoContextoGemini);
@@ -72,25 +72,25 @@ end;
 function CriarContextoJSON(
   const APassos: TArray<TPassoGemini>): string;
 var
-  LContexto: TContextoInteracaoGemini;
-  LPassos: TArray<TPassoGemini>;
+  LContextoInteracaoGemini: TContextoInteracaoGemini;
+  LPassosGemini: TArray<TPassoGemini>;
   I: Integer;
 begin
-  LContexto := TContextoInteracaoGemini.Create;
+  LContextoInteracaoGemini := TContextoInteracaoGemini.Create;
   try
-    SetLength(LPassos, Length(APassos));
+    SetLength(LPassosGemini, Length(APassos));
     try
       for I := Low(APassos) to High(APassos) do
-        LPassos[I] := ClonarPasso(APassos[I]);
+        LPassosGemini[I] := ClonarPasso(APassos[I]);
     except
-      for I := Low(LPassos) to High(LPassos) do
-        LPassos[I].Free;
+      for I := Low(LPassosGemini) to High(LPassosGemini) do
+        LPassosGemini[I].Free;
       raise;
     end;
-    LContexto.Passos := LPassos;
-    Result := TSerializadorJSON.Serializar(LContexto, COpcoesJSONSemVazios);
+    LContextoInteracaoGemini.Passos := LPassosGemini;
+    Result := TSerializadorJSON.Serializar(LContextoInteracaoGemini, COpcoesJSONSemVazios);
   finally
-    LContexto.Free;
+    LContextoInteracaoGemini.Free;
   end;
 end;
 
@@ -103,35 +103,35 @@ end;
 procedure ValidarPassosResposta(
   const APassos: TArray<TPassoGemini>);
 var
-  LPasso: TPassoGemini;
+  LPassoGemini: TPassoGemini;
 begin
-  for LPasso in APassos do
-    if SameText(LPasso.Tipo, CTipoPensamentoGemini) then
+  for LPassoGemini in APassos do
+    if SameText(LPassoGemini.Tipo, CTipoPensamentoGemini) then
     begin
-      if Trim(LPasso.Assinatura) = '' then
+      if Trim(LPassoGemini.Assinatura) = '' then
         raise EContratoGemini.Create(
           'A resposta Gemini possui um pensamento sem assinatura.');
     end
-    else if not SameText(LPasso.Tipo, CTipoSaidaModeloGemini) then
+    else if not SameText(LPassoGemini.Tipo, CTipoSaidaModeloGemini) then
       raise EContratoGemini.CreateFmt(
         'A resposta Gemini possui o step nao suportado "%s".',
-        [LPasso.Tipo]);
+        [LPassoGemini.Tipo]);
 end;
 
 function CriarIdCorrelacao(const AIdInteracao: string): string;
 var
   LGUID: TGUID;
-  LIdentificador: string;
+  LIdentificadorCorrelacao: string;
 begin
-  LIdentificador := Trim(AIdInteracao);
-  if LIdentificador = '' then
+  LIdentificadorCorrelacao := Trim(AIdInteracao);
+  if LIdentificadorCorrelacao = '' then
   begin
     if CreateGUID(LGUID) <> CResultadoSucessoCriacaoGUIDGemini then
       raise EContratoGemini.Create(
         'Nao foi possivel criar a correlacao local da resposta Gemini.');
-    LIdentificador := GUIDToString(LGUID);
+    LIdentificadorCorrelacao := GUIDToString(LGUID);
   end;
-  Result := CPrefixoContextoGemini + LIdentificador;
+  Result := CPrefixoContextoGemini + LIdentificadorCorrelacao;
 end;
 
 constructor TMapeadorGemini.Create(
@@ -141,7 +141,7 @@ begin
   if AArmazenamentoContexto = nil then
     raise EConfiguracaoGemini.Create(
       'O armazenamento de contexto Gemini deve ser informado.');
-  FArmazenamentoContexto := AArmazenamentoContexto;
+  FArmazenamentoContextoGemini := AArmazenamentoContexto;
 end;
 
 function TMapeadorGemini.CriarContratoRequisicao(
@@ -149,20 +149,20 @@ function TMapeadorGemini.CriarContratoRequisicao(
   AMaximoTokens: Integer): TRequisicaoInteracaoGemini;
 var
   LMensagem: IMensagemIA;
-  LPassos: TObjectList<TPassoGemini>;
-  LSistema: TStringBuilder;
-  LPasso: TPassoGemini;
-  LConteudo: TConteudoGemini;
-  LConteudos: TArray<TConteudoGemini>;
+  LPassosGemini: TObjectList<TPassoGemini>;
+  LInstrucaoSistema: TStringBuilder;
+  LPassoGemini: TPassoGemini;
+  LConteudoGemini: TConteudoGemini;
+  LConteudosGemini: TArray<TConteudoGemini>;
   LContextoJSON: string;
-  LContexto: TContextoInteracaoGemini;
-  LPassoContexto: TPassoGemini;
+  LContextoInteracaoGemini: TContextoInteracaoGemini;
+  LPassoContextoGemini: TPassoGemini;
 begin
   if ARequisicao = nil then
     raise EContratoGemini.Create('A requisicao canonica deve ser informada.');
   Result := TRequisicaoInteracaoGemini.Create;
-  LPassos := TObjectList<TPassoGemini>.Create(True);
-  LSistema := TStringBuilder.Create;
+  LPassosGemini := TObjectList<TPassoGemini>.Create(True);
+  LInstrucaoSistema := TStringBuilder.Create;
   try
     try
       Result.Modelo := Trim(ARequisicao.Modelo);
@@ -175,83 +175,83 @@ begin
         case LMensagem.Papel of
           TPapelMensagemIA.Sistema:
             begin
-              if LSistema.Length > 0 then
-                LSistema.Append(CSeparadorMensagensSistemaGemini);
-              LSistema.Append(LMensagem.Texto);
+              if LInstrucaoSistema.Length > 0 then
+                LInstrucaoSistema.Append(CSeparadorMensagensSistemaGemini);
+              LInstrucaoSistema.Append(LMensagem.Texto);
             end;
           TPapelMensagemIA.Usuario, TPapelMensagemIA.Assistente:
             begin
               if (LMensagem.Papel = TPapelMensagemIA.Assistente) and
                 EhCorrelacaoGemini(LMensagem.IdCorrelacao) then
               begin
-                if not FArmazenamentoContexto.TentarObter(
+                if not FArmazenamentoContextoGemini.TentarObter(
                   LMensagem.IdCorrelacao, LContextoJSON) then
                   raise EContratoGemini.Create(
                     'O contexto local da mensagem Gemini nao esta disponivel.');
-                LContexto := nil;
+                LContextoInteracaoGemini := nil;
                 try
                   try
-                    LContexto := TSerializadorJSON.Desserializar<
+                    LContextoInteracaoGemini := TSerializadorJSON.Desserializar<
                       TContextoInteracaoGemini>(LContextoJSON);
                   except
                     on E: ESerializacaoJSON do
                       raise EContratoGemini.Create(
                         'O contexto local da mensagem Gemini e invalido.');
                   end;
-                  ValidarPassosResposta(LContexto.Passos);
-                  for LPassoContexto in LContexto.Passos do
-                    LPassos.Add(ClonarPasso(LPassoContexto));
+                  ValidarPassosResposta(LContextoInteracaoGemini.Passos);
+                  for LPassoContextoGemini in LContextoInteracaoGemini.Passos do
+                    LPassosGemini.Add(ClonarPasso(LPassoContextoGemini));
                 finally
-                  LContexto.Free;
+                  LContextoInteracaoGemini.Free;
                 end;
               end
               else
               begin
-                LPasso := TPassoGemini.Create;
+                LPassoGemini := TPassoGemini.Create;
                 if LMensagem.Papel = TPapelMensagemIA.Usuario then
-                  LPasso.Tipo := CTipoEntradaUsuarioGemini
+                  LPassoGemini.Tipo := CTipoEntradaUsuarioGemini
                 else
-                  LPasso.Tipo := CTipoSaidaModeloGemini;
-                LConteudo := TConteudoGemini.Create;
-                LConteudo.Tipo := CTipoTextoGemini;
-                LConteudo.Texto := LMensagem.Texto;
-                SetLength(LConteudos, 1);
-                LConteudos[0] := LConteudo;
-                LPasso.Conteudo := LConteudos;
-                LPassos.Add(LPasso);
+                  LPassoGemini.Tipo := CTipoSaidaModeloGemini;
+                LConteudoGemini := TConteudoGemini.Create;
+                LConteudoGemini.Tipo := CTipoTextoGemini;
+                LConteudoGemini.Texto := LMensagem.Texto;
+                SetLength(LConteudosGemini, 1);
+                LConteudosGemini[0] := LConteudoGemini;
+                LPassoGemini.Conteudo := LConteudosGemini;
+                LPassosGemini.Add(LPassoGemini);
               end;
             end;
         else
           raise EContratoGemini.Create(
             'Mensagens de ferramenta ainda nao sao suportadas pelo provedor Gemini textual.');
         end;
-      if LPassos.Count = 0 then
+      if LPassosGemini.Count = 0 then
         raise EContratoGemini.Create(
           'A Gemini exige ao menos uma mensagem de usuario ou assistente.');
-      Result.InstrucaoSistema := LSistema.ToString;
-      Result.Entrada := LPassos.ToArray;
-      LPassos.OwnsObjects := False;
+      Result.InstrucaoSistema := LInstrucaoSistema.ToString;
+      Result.Entrada := LPassosGemini.ToArray;
+      LPassosGemini.OwnsObjects := False;
     except
       Result.Free;
       raise;
     end;
   finally
-    LSistema.Free;
-    LPassos.Free;
+    LInstrucaoSistema.Free;
+    LPassosGemini.Free;
   end;
 end;
 
 function TMapeadorGemini.MapearResposta(
   AResposta: TRespostaInteracaoGemini): IRespostaChatIA;
 var
-  LPasso: TPassoGemini;
-  LConteudo: TConteudoGemini;
-  LPartesLista: TList<IParteConteudoIA>;
-  LPartes: TArray<IParteConteudoIA>;
+  LPassoGemini: TPassoGemini;
+  LConteudoGemini: TConteudoGemini;
+  LListaPartesConteudo: TList<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
   LMensagem: IMensagemIA;
   LUso: IUsoIA;
-  LEntrada: Int64;
-  LSaida: Int64;
+  LUnidadesEntrada: Int64;
+  LUnidadesSaida: Int64;
   LIdCorrelacao: string;
 begin
   if AResposta = nil then
@@ -260,36 +260,36 @@ begin
     not SameText(AResposta.Status, CStatusIncompletoGemini) then
     raise EContratoGemini.Create('A resposta Gemini possui status invalido.');
   ValidarPassosResposta(AResposta.Passos);
-  LPartesLista := TList<IParteConteudoIA>.Create;
+  LListaPartesConteudo := TList<IParteConteudoIA>.Create;
   try
-    for LPasso in AResposta.Passos do
-      if SameText(LPasso.Tipo, CTipoSaidaModeloGemini) then
-        for LConteudo in LPasso.Conteudo do
-          if SameText(LConteudo.Tipo, CTipoTextoGemini) and
-            (Trim(LConteudo.Texto) <> '') then
-            LPartesLista.Add(TParteConteudoTextoIA.Create(LConteudo.Texto));
-    if LPartesLista.Count = 0 then
+    for LPassoGemini in AResposta.Passos do
+      if SameText(LPassoGemini.Tipo, CTipoSaidaModeloGemini) then
+        for LConteudoGemini in LPassoGemini.Conteudo do
+          if SameText(LConteudoGemini.Tipo, CTipoTextoGemini) and
+            (Trim(LConteudoGemini.Texto) <> '') then
+            LListaPartesConteudo.Add(TParteConteudoTextoIA.Create(LConteudoGemini.Texto));
+    if LListaPartesConteudo.Count = 0 then
       raise EContratoGemini.Create(
         'A resposta Gemini nao possui conteudo textual do modelo.');
-    LPartes := LPartesLista.ToArray;
+    LPartesConteudo := LListaPartesConteudo.ToArray;
   finally
-    LPartesLista.Free;
+    LListaPartesConteudo.Free;
   end;
   LIdCorrelacao := CriarIdCorrelacao(AResposta.Id);
-  FArmazenamentoContexto.Guardar(LIdCorrelacao,
+  FArmazenamentoContextoGemini.Guardar(LIdCorrelacao,
     CriarContextoJSON(AResposta.Passos));
-  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartes, '',
+  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartesConteudo, '',
     LIdCorrelacao);
   LUso := nil;
   if AResposta.Uso <> nil then
   begin
-    LEntrada := AResposta.Uso.TotalTokensEntrada;
-    if LEntrada = 0 then
-      LEntrada := AResposta.Uso.TokensEntrada;
-    LSaida := AResposta.Uso.TotalTokensSaida;
-    if LSaida = 0 then
-      LSaida := AResposta.Uso.TokensSaida;
-    LUso := TUsoIA.Create(LEntrada, LSaida);
+    LUnidadesEntrada := AResposta.Uso.TotalTokensEntrada;
+    if LUnidadesEntrada = 0 then
+      LUnidadesEntrada := AResposta.Uso.TokensEntrada;
+    LUnidadesSaida := AResposta.Uso.TotalTokensSaida;
+    if LUnidadesSaida = 0 then
+      LUnidadesSaida := AResposta.Uso.TokensSaida;
+    LUso := TUsoIA.Create(LUnidadesEntrada, LUnidadesSaida);
   end;
   Result := TRespostaChatIA.Create(AResposta.Id, LMensagem, LUso);
 end;

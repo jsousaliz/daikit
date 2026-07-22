@@ -21,27 +21,30 @@ uses
 
 procedure TTestesCapacidadesAdaptadorIA.Capacidades_DevePreservarConfiguracaoInformada;
 var
-  LCapacidades: ICapacidadesAdaptadorIA;
+  LCapacidadesAdaptador: ICapacidadesAdaptadorIA;
 begin
-  LCapacidades := TCapacidadesAdaptadorIA.Create(False, True, True, True,
-    True);
-  Assert.IsFalse(LCapacidades.SuportaTextoSincrono);
-  Assert.IsTrue(LCapacidades.SuportaFluxoContinuo);
-  Assert.IsTrue(LCapacidades.SuportaFerramentas);
-  Assert.IsTrue(LCapacidades.SuportaImagemEntrada);
-  Assert.IsTrue(LCapacidades.SuportaSaidaEstruturada);
+  LCapacidadesAdaptador := TCapacidadesAdaptadorIA.Create([
+    TCapacidadeAdaptadorIA.FluxoContinuo,
+    TCapacidadeAdaptadorIA.Ferramentas,
+    TCapacidadeAdaptadorIA.ImagemEntrada,
+    TCapacidadeAdaptadorIA.SaidaEstruturada]);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaTextoSincrono);
+  Assert.IsTrue(LCapacidadesAdaptador.SuportaFluxoContinuo);
+  Assert.IsTrue(LCapacidadesAdaptador.SuportaFerramentas);
+  Assert.IsTrue(LCapacidadesAdaptador.SuportaImagemEntrada);
+  Assert.IsTrue(LCapacidadesAdaptador.SuportaSaidaEstruturada);
 end;
 
 procedure TTestesCapacidadesAdaptadorIA.SomenteTextoSincrono_DeveExporApenasCapacidadeImplementada;
 var
-  LCapacidades: ICapacidadesAdaptadorIA;
+  LCapacidadesAdaptador: ICapacidadesAdaptadorIA;
 begin
-  LCapacidades := TCapacidadesAdaptadorIA.SomenteTextoSincrono;
-  Assert.IsTrue(LCapacidades.SuportaTextoSincrono);
-  Assert.IsFalse(LCapacidades.SuportaFluxoContinuo);
-  Assert.IsFalse(LCapacidades.SuportaFerramentas);
-  Assert.IsFalse(LCapacidades.SuportaImagemEntrada);
-  Assert.IsFalse(LCapacidades.SuportaSaidaEstruturada);
+  LCapacidadesAdaptador := TCapacidadesAdaptadorIA.SomenteTextoSincrono;
+  Assert.IsTrue(LCapacidadesAdaptador.SuportaTextoSincrono);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaFluxoContinuo);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaFerramentas);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaImagemEntrada);
+  Assert.IsFalse(LCapacidadesAdaptador.SuportaSaidaEstruturada);
 end;
 
 initialization

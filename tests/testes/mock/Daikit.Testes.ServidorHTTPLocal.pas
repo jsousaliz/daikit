@@ -66,20 +66,20 @@ function TServidorHTTPLocal.CriarResposta: string;
 const
   CSeparadorHTTP = #13#10;
 var
-  LCorpo: string;
+  LCorpoRespostaHTTP: string;
 begin
   case FComportamento of
     TComportamentoServidorHTTPLocal.RespostaExcessiva:
-      LCorpo := '12345678';
+      LCorpoRespostaHTTP := '12345678';
   else
-    LCorpo := '{}';
+    LCorpoRespostaHTTP := '{}';
   end;
 
   Result := 'HTTP/1.1 200 OK' + CSeparadorHTTP +
     'Content-Type: application/json' + CSeparadorHTTP +
-    'Content-Length: ' + IntToStr(TEncoding.UTF8.GetByteCount(LCorpo)) +
+    'Content-Length: ' + IntToStr(TEncoding.UTF8.GetByteCount(LCorpoRespostaHTTP)) +
     CSeparadorHTTP + 'Connection: close' + CSeparadorHTTP +
-    CSeparadorHTTP + LCorpo;
+    CSeparadorHTTP + LCorpoRespostaHTTP;
 end;
 
 destructor TServidorHTTPLocal.Destroy;
@@ -94,60 +94,60 @@ end;
 
 procedure TServidorHTTPLocal.Execute;
 var
-  LCliente: TSocket;
+  LSocketCliente: TSocket;
 begin
   while not Terminated do
   begin
-    LCliente := nil;
+    LSocketCliente := nil;
     try
-      LCliente := FEscutador.Accept(50);
-      if LCliente = nil then
+      LSocketCliente := FEscutador.Accept(50);
+      if LSocketCliente = nil then
         Continue;
       TInterlocked.Increment(FQuantidadeRequisicoes);
-      ReceberCabecalhosCompletos(LCliente);
+      ReceberCabecalhosCompletos(LSocketCliente);
       if FComportamento = TComportamentoServidorHTTPLocal.RespostaAtrasada then
         TThread.Sleep(FAtrasoMS);
       if not Terminated then
       begin
-        EnviarRespostaCompleta(LCliente, CriarResposta);
+        EnviarRespostaCompleta(LSocketCliente, CriarResposta);
         TThread.Sleep(CEsperaFechamentoConexaoMS);
       end;
     except
       if not Terminated then
         raise;
     end;
-    LCliente.Free;
+    LSocketCliente.Free;
   end;
 end;
 
 procedure TServidorHTTPLocal.ReceberCabecalhosCompletos(ACliente: TSocket);
 var
-  LParte: string;
-  LRequisicao: string;
+  LParteRequisicaoHTTP: string;
+  LTextoRequisicaoHTTP: string;
 begin
-  LRequisicao := '';
+  LTextoRequisicaoHTTP := '';
   repeat
-    LParte := ACliente.ReceiveString;
-    if LParte = '' then
+    LParteRequisicaoHTTP := ACliente.ReceiveString;
+    if LParteRequisicaoHTTP = '' then
       Exit;
-    LRequisicao := LRequisicao + LParte;
-    if Length(LRequisicao) > CLimiteCabecalhosHTTPCaracteres then
+    LTextoRequisicaoHTTP := LTextoRequisicaoHTTP + LParteRequisicaoHTTP;
+    if Length(LTextoRequisicaoHTTP) > CLimiteCabecalhosHTTPCaracteres then
       raise ESocketError.Create('Os cabecalhos HTTP locais excederam o limite.');
-  until LRequisicao.Contains(CFimCabecalhosHTTP);
+  until LTextoRequisicaoHTTP.Contains(CFimCabecalhosHTTP);
 end;
 
 procedure TServidorHTTPLocal.EnviarRespostaCompleta(ACliente: TSocket;
   const AResposta: string);
 var
-  LBytes: TBytes;
+  LBytesRespostaHTTP: TBytes;
   LEnviados: Integer;
   LPosicao: Integer;
 begin
-  LBytes := TEncoding.UTF8.GetBytes(AResposta);
+  LBytesRespostaHTTP := TEncoding.UTF8.GetBytes(AResposta);
   LPosicao := 0;
-  while LPosicao < Length(LBytes) do
+  while LPosicao < Length(LBytesRespostaHTTP) do
   begin
-    LEnviados := ACliente.Send(LBytes, LPosicao, Length(LBytes) - LPosicao);
+    LEnviados := ACliente.Send(LBytesRespostaHTTP, LPosicao, Length(LBytesRespostaHTTP) - LPosicao);
     if LEnviados <= 0 then
       Exit;
     Inc(LPosicao, LEnviados);

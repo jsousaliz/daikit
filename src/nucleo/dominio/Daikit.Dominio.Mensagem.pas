@@ -17,8 +17,8 @@ type
 
   TMensagemIA = class(TInterfacedObject, IMensagemIA)
   private
-    FPapel: TPapelMensagemIA;
-    FPartes: TArray<IParteConteudoIA>;
+    FPapelMensagem: TPapelMensagemIA;
+    FPartesConteudo: TArray<IParteConteudoIA>;
     FNome: string;
     FIdCorrelacao: string;
     function ObterPapel: TPapelMensagemIA;
@@ -75,16 +75,16 @@ begin
   if Length(APartes) < CQuantidadeMinimaPartesMensagem then
     raise EValidacaoDominioIA.Create('A mensagem deve possuir ao menos uma parte de conteudo.');
 
-  SetLength(FPartes, Length(APartes));
+  SetLength(FPartesConteudo, Length(APartes));
   for I := Low(APartes) to High(APartes) do
   begin
     if APartes[I] = nil then
       raise EValidacaoDominioIA.CreateFmt(
         'A parte de conteudo no indice %d nao foi informada.', [I]);
-    FPartes[I] := APartes[I];
+    FPartesConteudo[I] := APartes[I];
   end;
 
-  FPapel := APapel;
+  FPapelMensagem := APapel;
   FNome := ANome;
   FIdCorrelacao := AIdCorrelacao;
 end;
@@ -92,11 +92,11 @@ end;
 class function TMensagemIA.CriarTexto(APapel: TPapelMensagemIA;
   const ATexto, ANome, AIdCorrelacao: string): IMensagemIA;
 var
-  LPartes: TArray<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
 begin
-  SetLength(LPartes, CQuantidadePartesMensagemTexto);
-  LPartes[Low(LPartes)] := TParteConteudoTextoIA.Create(ATexto);
-  Result := TMensagemIA.Create(APapel, LPartes, ANome, AIdCorrelacao);
+  SetLength(LPartesConteudo, CQuantidadePartesMensagemTexto);
+  LPartesConteudo[Low(LPartesConteudo)] := TParteConteudoTextoIA.Create(ATexto);
+  Result := TMensagemIA.Create(APapel, LPartesConteudo, ANome, AIdCorrelacao);
 end;
 
 function TMensagemIA.ObterIdCorrelacao: string;
@@ -111,27 +111,27 @@ end;
 
 function TMensagemIA.ObterPapel: TPapelMensagemIA;
 begin
-  Result := FPapel;
+  Result := FPapelMensagem;
 end;
 
 function TMensagemIA.ObterPartes: TArray<IParteConteudoIA>;
 begin
-  Result := Copy(FPartes);
+  Result := Copy(FPartesConteudo);
 end;
 
 function TMensagemIA.ObterTexto: string;
 var
-  LParte: IParteConteudoIA;
-  LTexto: TStringBuilder;
+  LParteConteudo: IParteConteudoIA;
+  LConstrutorTexto: TStringBuilder;
 begin
-  LTexto := TStringBuilder.Create;
+  LConstrutorTexto := TStringBuilder.Create;
   try
-    for LParte in FPartes do
-      if LParte.Tipo = TTipoParteConteudoIA.Texto then
-        LTexto.Append(LParte.Texto);
-    Result := LTexto.ToString;
+    for LParteConteudo in FPartesConteudo do
+      if LParteConteudo.Tipo = TTipoParteConteudoIA.Texto then
+        LConstrutorTexto.Append(LParteConteudo.Texto);
+    Result := LConstrutorTexto.ToString;
   finally
-    LTexto.Free;
+    LConstrutorTexto.Free;
   end;
 end;
 

@@ -3,12 +3,18 @@ unit Daikit.Adaptadores.Gemini.Configuracao;
 interface
 
 uses
-  Daikit.Infraestrutura.HTTP.Constantes,
   Daikit.Adaptadores.Configuracao,
   Daikit.Adaptadores.Gemini.Constantes,
   Daikit.Adaptadores.Gemini.Interfaces;
 
 type
+  TOpcoesConfiguracaoGemini = record
+    Comum: TOpcoesConfiguracaoAdaptadorIA;
+    MaximoTokens: Integer;
+    ModoContexto: TModoContextoGemini;
+    class function Padrao: TOpcoesConfiguracaoGemini; static;
+  end;
+
   TConfiguracaoGemini = class(TConfiguracaoAdaptadorIA,
     IConfiguracaoGemini)
   private
@@ -17,13 +23,8 @@ type
     function ObterMaximoTokens: Integer;
     function ObterModoContexto: TModoContextoGemini;
   public
-    constructor Create(const AEndpoint: string = CEndpointInteracoesGemini;
-      const AModeloPadrao: string = CModeloGeminiPadrao;
-      AMaximoTokens: Integer = CMaximoTokensSaidaPadraoGemini;
-      ATimeoutConexaoMS: Integer = CTimeoutConexaoPadraoMS;
-      ATimeoutRespostaMS: Integer = CTimeoutRespostaPadraoMS;
-      ALimiteRespostaBytes: Int64 = CLimiteRespostaPadraoBytes;
-      AModoContexto: TModoContextoGemini = TModoContextoGemini.Local);
+    constructor Create; overload;
+    constructor Create(const AOpcoes: TOpcoesConfiguracaoGemini); overload;
   end;
 
 implementation
@@ -31,21 +32,31 @@ implementation
 uses
   Daikit.Adaptadores.Gemini.Excecoes;
 
-constructor TConfiguracaoGemini.Create(const AEndpoint, AModeloPadrao: string;
-  AMaximoTokens, ATimeoutConexaoMS, ATimeoutRespostaMS: Integer;
-  ALimiteRespostaBytes: Int64; AModoContexto: TModoContextoGemini);
+class function TOpcoesConfiguracaoGemini.Padrao: TOpcoesConfiguracaoGemini;
 begin
-  inherited Create('Gemini', AEndpoint, AModeloPadrao,
-    ATimeoutConexaoMS, ATimeoutRespostaMS, ALimiteRespostaBytes,
-    EConfiguracaoGemini);
-  if AMaximoTokens <= 0 then
+  Result.Comum := TOpcoesConfiguracaoAdaptadorIA.Padrao(
+    CEndpointInteracoesGemini, CModeloGeminiPadrao);
+  Result.MaximoTokens := CMaximoTokensSaidaPadraoGemini;
+  Result.ModoContexto := TModoContextoGemini.Local;
+end;
+
+constructor TConfiguracaoGemini.Create;
+begin
+  Create(TOpcoesConfiguracaoGemini.Padrao);
+end;
+
+constructor TConfiguracaoGemini.Create(
+  const AOpcoes: TOpcoesConfiguracaoGemini);
+begin
+  inherited Create('Gemini', AOpcoes.Comum, EConfiguracaoGemini);
+  if AOpcoes.MaximoTokens <= 0 then
     raise EConfiguracaoGemini.Create(
       'O maximo de tokens Gemini deve ser maior que zero.');
-  if AModoContexto <> TModoContextoGemini.Local then
+  if AOpcoes.ModoContexto <> TModoContextoGemini.Local then
     raise EConfiguracaoGemini.Create(
       'O contexto remoto Gemini ainda nao foi implementado. Use o modo Local.');
-  FMaximoTokens := AMaximoTokens;
-  FModoContexto := AModoContexto;
+  FMaximoTokens := AOpcoes.MaximoTokens;
+  FModoContexto := AOpcoes.ModoContexto;
 end;
 
 function TConfiguracaoGemini.ObterMaximoTokens: Integer;

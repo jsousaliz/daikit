@@ -120,33 +120,33 @@ implementation
 
 destructor TPassoGemini.Destroy;
 var
-  LConteudo: TConteudoGemini;
+  LConteudoGemini: TConteudoGemini;
 begin
-  for LConteudo in FConteudo do
-    LConteudo.Free;
+  for LConteudoGemini in FConteudo do
+    LConteudoGemini.Free;
   FConteudo := nil;
-  for LConteudo in FResumo do
-    LConteudo.Free;
+  for LConteudoGemini in FResumo do
+    LConteudoGemini.Free;
   FResumo := nil;
   inherited;
 end;
 
 destructor TContextoInteracaoGemini.Destroy;
 var
-  LPasso: TPassoGemini;
+  LPassoGemini: TPassoGemini;
 begin
-  for LPasso in FPassos do
-    LPasso.Free;
+  for LPassoGemini in FPassos do
+    LPassoGemini.Free;
   FPassos := nil;
   inherited;
 end;
 
 destructor TRequisicaoInteracaoGemini.Destroy;
 var
-  LPasso: TPassoGemini;
+  LPassoGemini: TPassoGemini;
 begin
-  for LPasso in FEntrada do
-    LPasso.Free;
+  for LPassoGemini in FEntrada do
+    LPassoGemini.Free;
   FEntrada := nil;
   FConfiguracaoGeracao.Free;
   inherited;
@@ -154,10 +154,10 @@ end;
 
 destructor TRespostaInteracaoGemini.Destroy;
 var
-  LPasso: TPassoGemini;
+  LPassoGemini: TPassoGemini;
 begin
-  for LPasso in FPassos do
-    LPasso.Free;
+  for LPassoGemini in FPassos do
+    LPassoGemini.Free;
   FPassos := nil;
   FUso.Free;
   inherited;

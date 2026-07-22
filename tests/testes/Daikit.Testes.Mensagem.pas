@@ -27,13 +27,13 @@ uses
 
 procedure TTestesMensagemIA.Mensagem_DeveConcatenarPartesTextuais;
 var
-  LPartes: TArray<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
   LMensagem: IMensagemIA;
 begin
-  SetLength(LPartes, 2);
-  LPartes[0] := TParteConteudoTextoIA.Create('Ola, ');
-  LPartes[1] := TParteConteudoTextoIA.Create('mundo');
-  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartes);
+  SetLength(LPartesConteudo, 2);
+  LPartesConteudo[0] := TParteConteudoTextoIA.Create('Ola, ');
+  LPartesConteudo[1] := TParteConteudoTextoIA.Create('mundo');
+  LMensagem := TMensagemIA.Create(TPapelMensagemIA.Assistente, LPartesConteudo);
 
   Assert.AreEqual('Ola, mundo', LMensagem.Texto);
 end;
@@ -56,48 +56,48 @@ end;
 procedure TTestesMensagemIA.Mensagem_DeveProtegerColecaoInterna;
 var
   LMensagem: IMensagemIA;
-  LPartes: TArray<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
 begin
   LMensagem := TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario, 'texto');
-  LPartes := LMensagem.Partes;
-  LPartes[0] := nil;
+  LPartesConteudo := LMensagem.Partes;
+  LPartesConteudo[0] := nil;
 
   Assert.AreEqual('texto', LMensagem.Texto);
 end;
 
 procedure TTestesMensagemIA.Mensagem_NaoDeveAceitarParteNula;
 var
-  LPartes: TArray<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
 begin
-  SetLength(LPartes, 1);
-  LPartes[0] := nil;
+  SetLength(LPartesConteudo, 1);
+  LPartesConteudo[0] := nil;
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      TMensagemIA.Create(TPapelMensagemIA.Usuario, LPartes).Free;
+      TMensagemIA.Create(TPapelMensagemIA.Usuario, LPartesConteudo).Free;
     end),
     EValidacaoDominioIA);
 end;
 
 procedure TTestesMensagemIA.Mensagem_NaoDeveAceitarPartesAusentes;
 var
-  LPartes: TArray<IParteConteudoIA>;
+  LPartesConteudo: TArray<IParteConteudoIA>;
 begin
   Assert.WillRaise(
     TTestLocalMethod(procedure
     begin
-      TMensagemIA.Create(TPapelMensagemIA.Usuario, LPartes).Free;
+      TMensagemIA.Create(TPapelMensagemIA.Usuario, LPartesConteudo).Free;
     end),
     EValidacaoDominioIA);
 end;
 
 procedure TTestesMensagemIA.ParteTexto_DeveExporTipoETexto;
 var
-  LParte: IParteConteudoIA;
+  LParteConteudo: IParteConteudoIA;
 begin
-  LParte := TParteConteudoTextoIA.Create('conteudo');
-  Assert.AreEqual(Integer(TTipoParteConteudoIA.Texto), Integer(LParte.Tipo));
-  Assert.AreEqual('conteudo', LParte.Texto);
+  LParteConteudo := TParteConteudoTextoIA.Create('conteudo');
+  Assert.AreEqual(Integer(TTipoParteConteudoIA.Texto), Integer(LParteConteudo.Tipo));
+  Assert.AreEqual('conteudo', LParteConteudo.Texto);
 end;
 
 procedure TTestesMensagemIA.ParteTexto_NaoDeveAceitarVazio;

@@ -59,20 +59,20 @@ function TServicoContextoIA.Enviar(const AModelo, ATexto: string;
   AModo: TModoConversaIA;
   const ACancelamento: ITokenCancelamentoIA): IRespostaChatIA;
 var
-  LUsuario: IMensagemIA;
+  LMensagemUsuario: IMensagemIA;
   LMensagens: TArray<IMensagemIA>;
-  LRequisicao: IRequisicaoChatIA;
+  LRequisicaoChat: IRequisicaoChatIA;
 begin
   VerificarCancelamento(ACancelamento);
-  LUsuario := TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario, ATexto);
+  LMensagemUsuario := TMensagemIA.CriarTexto(TPapelMensagemIA.Usuario, ATexto);
 
   if AModo = TModoConversaIA.ManterHistorico then
-    LMensagens := AcrescentarMensagem(FContexto.ObterMensagens, LUsuario)
+    LMensagens := AcrescentarMensagem(FContexto.ObterMensagens, LMensagemUsuario)
   else
-    LMensagens := AcrescentarMensagem(nil, LUsuario);
+    LMensagens := AcrescentarMensagem(nil, LMensagemUsuario);
 
-  LRequisicao := TRequisicaoChatIA.Create(AModelo, LMensagens);
-  Result := FAdaptador.Concluir(LRequisicao, ACancelamento);
+  LRequisicaoChat := TRequisicaoChatIA.Create(AModelo, LMensagens);
+  Result := FAdaptador.Concluir(LRequisicaoChat, ACancelamento);
   VerificarCancelamento(ACancelamento);
 
   if Result = nil then
@@ -80,7 +80,7 @@ begin
 
   if AModo = TModoConversaIA.ManterHistorico then
   begin
-    FContexto.Adicionar(LUsuario);
+    FContexto.Adicionar(LMensagemUsuario);
     FContexto.Adicionar(Result.Mensagem);
   end;
 end;

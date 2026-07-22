@@ -78,13 +78,13 @@ const
 
 function DocumentosPublicos: string;
 var
-  LBuffer: array[0..MAX_PATH] of Char;
+  LBufferCaminho: array[0..MAX_PATH] of Char;
 begin
   if SHGetFolderPath(0, CSIDL_COMMON_DOCUMENTS, 0, SHGFP_TYPE_CURRENT,
-    LBuffer) <> S_OK then
+    LBufferCaminho) <> S_OK then
     raise EInstaladorDaikit.Create(
       'Nao foi possivel localizar os documentos publicos do Windows.');
-  Result := LBuffer;
+  Result := LBufferCaminho;
 end;
 
 procedure ExcluirArquivo(const AArquivo: string);
@@ -170,18 +170,18 @@ end;
 
 function TServicoInstalacaoDaikit.ChaveBDSExiste: Boolean;
 var
-  LRegistro: TRegistry;
+  LRegistroWindows: TRegistry;
 begin
-  LRegistro := TRegistry.Create(KEY_READ or KEY_WOW64_32KEY);
+  LRegistroWindows := TRegistry.Create(KEY_READ or KEY_WOW64_32KEY);
   try
-    LRegistro.RootKey := HKEY_CURRENT_USER;
-    Result := LRegistro.KeyExists(CHAVE_BDS);
+    LRegistroWindows.RootKey := HKEY_CURRENT_USER;
+    Result := LRegistroWindows.KeyExists(CHAVE_BDS);
     if Result then
       Exit;
-    LRegistro.RootKey := HKEY_LOCAL_MACHINE;
-    Result := LRegistro.KeyExists(CHAVE_BDS);
+    LRegistroWindows.RootKey := HKEY_LOCAL_MACHINE;
+    Result := LRegistroWindows.KeyExists(CHAVE_BDS);
   finally
-    LRegistro.Free;
+    LRegistroWindows.Free;
   end;
 end;
 
@@ -229,29 +229,29 @@ end;
 procedure TServicoInstalacaoDaikit.EscreverSearchPath(
   const APlataforma, AValor: string);
 var
-  LRegistro: TRegistry;
+  LRegistroWindows: TRegistry;
 begin
-  LRegistro := TRegistry.Create(KEY_READ or KEY_WRITE or KEY_WOW64_32KEY);
+  LRegistroWindows := TRegistry.Create(KEY_READ or KEY_WRITE or KEY_WOW64_32KEY);
   try
-    LRegistro.RootKey := HKEY_CURRENT_USER;
-    if not LRegistro.OpenKey(CHAVE_BDS + '\Library\' + APlataforma,
+    LRegistroWindows.RootKey := HKEY_CURRENT_USER;
+    if not LRegistroWindows.OpenKey(CHAVE_BDS + '\Library\' + APlataforma,
       True) then
       raise EInstaladorDaikit.Create(
         'Nao foi possivel atualizar o Search Path do Delphi.');
-    LRegistro.WriteString('Search Path', AValor);
+    LRegistroWindows.WriteString('Search Path', AValor);
   finally
-    LRegistro.Free;
+    LRegistroWindows.Free;
   end;
 end;
 
 procedure TServicoInstalacaoDaikit.ExcluirInstalacao;
 var
-  LBPL: string;
+  LCaminhoBPL: string;
 begin
-  LBPL := DiretorioBPL;
-  ExcluirArquivo(TPath.Combine(LBPL, PACOTE_DESIGN));
-  ExcluirArquivo(TPath.Combine(LBPL, PACOTE_RUNTIME));
-  ExcluirArquivo(TPath.Combine(TPath.Combine(LBPL, WIN64),
+  LCaminhoBPL := DiretorioBPL;
+  ExcluirArquivo(TPath.Combine(LCaminhoBPL, PACOTE_DESIGN));
+  ExcluirArquivo(TPath.Combine(LCaminhoBPL, PACOTE_RUNTIME));
+  ExcluirArquivo(TPath.Combine(TPath.Combine(LCaminhoBPL, WIN64),
     PACOTE_RUNTIME));
   ExcluirDiretorio(TPath.Combine(TPath.Combine(DiretorioComum,
     'Dcp'), 'Daikit'));
@@ -267,72 +267,72 @@ end;
 procedure TServicoInstalacaoDaikit.ExtrairPayload(
   const ADestino: string);
 var
-  LRecurso: TResourceStream;
-  LZip: string;
+  LStreamRecurso: TResourceStream;
+  LCaminhoArquivoZIP: string;
 begin
   if not PayloadDisponivel then
     raise EInstaladorDaikit.Create(
       'Payload ausente. Reconstrua o instalador com Construir.ps1.');
   ForceDirectories(ADestino);
-  LZip := TPath.Combine(ADestino, 'Daikit.Delphi12.zip');
-  LRecurso := TResourceStream.Create(HInstance, RECURSO_PAYLOAD, RT_RCDATA);
+  LCaminhoArquivoZIP := TPath.Combine(ADestino, 'Daikit.Delphi12.zip');
+  LStreamRecurso := TResourceStream.Create(HInstance, RECURSO_PAYLOAD, RT_RCDATA);
   try
-    LRecurso.SaveToFile(LZip);
+    LStreamRecurso.SaveToFile(LCaminhoArquivoZIP);
   finally
-    LRecurso.Free;
+    LStreamRecurso.Free;
   end;
-  TZipFile.ExtractZipFile(LZip, ADestino);
-  ExcluirArquivo(LZip);
+  TZipFile.ExtractZipFile(LCaminhoArquivoZIP, ADestino);
+  ExcluirArquivo(LCaminhoArquivoZIP);
 end;
 
 class function TServicoInstalacaoDaikit.IDEEmExecucao: Boolean;
 var
-  LEntrada: TProcessEntry32;
-  LSnapshot: THandle;
+  LEntradaProcesso: TProcessEntry32;
+  LSnapshotProcessos: THandle;
 begin
   Result := False;
-  LSnapshot := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-  if LSnapshot = INVALID_HANDLE_VALUE then
+  LSnapshotProcessos := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if LSnapshotProcessos = INVALID_HANDLE_VALUE then
     Exit;
   try
-    ZeroMemory(@LEntrada, SizeOf(LEntrada));
-    LEntrada.dwSize := SizeOf(LEntrada);
-    if Process32First(LSnapshot, LEntrada) then
+    ZeroMemory(@LEntradaProcesso, SizeOf(LEntradaProcesso));
+    LEntradaProcesso.dwSize := SizeOf(LEntradaProcesso);
+    if Process32First(LSnapshotProcessos, LEntradaProcesso) then
       repeat
-        if SameText(ExtractFileName(LEntrada.szExeFile), 'bds.exe') then
+        if SameText(ExtractFileName(LEntradaProcesso.szExeFile), 'bds.exe') then
           Exit(True);
-      until not Process32Next(LSnapshot, LEntrada);
+      until not Process32Next(LSnapshotProcessos, LEntradaProcesso);
   finally
-    CloseHandle(LSnapshot);
+    CloseHandle(LSnapshotProcessos);
   end;
 end;
 
 procedure TServicoInstalacaoDaikit.Instalar;
 var
-  LBPL: string;
-  LTemporario: string;
+  LCaminhoBPL: string;
+  LCaminhoTemporario: string;
 begin
   ExigirIDEFechada;
   if not ChaveBDSExiste then
     raise EInstaladorDaikit.Create(
       'Delphi 12 (BDS 23.0) nao foi localizado.');
-  LTemporario := TPath.Combine(TPath.GetTempPath,
+  LCaminhoTemporario := TPath.Combine(TPath.GetTempPath,
     'Daikit-' + TGUID.NewGuid.ToString.Replace('{', '').Replace('}', ''));
   try
     try
-      ExtrairPayload(LTemporario);
-      ValidarPayload(LTemporario);
-      LBPL := DiretorioBPL;
-      CopiarDiretorio(TPath.Combine(LTemporario, 'Win32\Bpl'), LBPL);
-      CopiarDiretorio(TPath.Combine(LTemporario, 'Win64\Bpl'),
-        TPath.Combine(LBPL, WIN64));
-      CopiarDiretorio(TPath.Combine(LTemporario, 'Win32\Dcp'),
+      ExtrairPayload(LCaminhoTemporario);
+      ValidarPayload(LCaminhoTemporario);
+      LCaminhoBPL := DiretorioBPL;
+      CopiarDiretorio(TPath.Combine(LCaminhoTemporario, 'Win32\Bpl'), LCaminhoBPL);
+      CopiarDiretorio(TPath.Combine(LCaminhoTemporario, 'Win64\Bpl'),
+        TPath.Combine(LCaminhoBPL, WIN64));
+      CopiarDiretorio(TPath.Combine(LCaminhoTemporario, 'Win32\Dcp'),
         DiretorioDCP(WIN32));
-      CopiarDiretorio(TPath.Combine(LTemporario, 'Win64\Dcp'),
+      CopiarDiretorio(TPath.Combine(LCaminhoTemporario, 'Win64\Dcp'),
         DiretorioDCP(WIN64));
       AtualizarSearchPath(WIN32, True);
       AtualizarSearchPath(WIN64, True);
-      RegistrarPacote(TPath.Combine(LBPL, PACOTE_DESIGN));
+      RegistrarPacote(TPath.Combine(LCaminhoBPL, PACOTE_DESIGN));
     except
       RemoverRegistroPacote;
       AtualizarSearchPath(WIN32, False);
@@ -341,31 +341,31 @@ begin
       raise;
     end;
   finally
-    ExcluirDiretorio(LTemporario);
+    ExcluirDiretorio(LCaminhoTemporario);
   end;
 end;
 
 function TServicoInstalacaoDaikit.LerSearchPath(
   const APlataforma: string): string;
 var
-  LChave: string;
-  LRegistro: TRegistry;
+  LChaveRegistro: string;
+  LRegistroWindows: TRegistry;
 begin
   Result := '';
-  LChave := CHAVE_BDS + '\Library\' + APlataforma;
-  LRegistro := TRegistry.Create(KEY_READ or KEY_WOW64_32KEY);
+  LChaveRegistro := CHAVE_BDS + '\Library\' + APlataforma;
+  LRegistroWindows := TRegistry.Create(KEY_READ or KEY_WOW64_32KEY);
   try
-    LRegistro.RootKey := HKEY_CURRENT_USER;
-    if LRegistro.OpenKeyReadOnly(LChave) and
-      LRegistro.ValueExists('Search Path') then
-      Exit(LRegistro.ReadString('Search Path'));
-    LRegistro.CloseKey;
-    LRegistro.RootKey := HKEY_LOCAL_MACHINE;
-    if LRegistro.OpenKeyReadOnly(LChave) and
-      LRegistro.ValueExists('Search Path') then
-      Result := LRegistro.ReadString('Search Path');
+    LRegistroWindows.RootKey := HKEY_CURRENT_USER;
+    if LRegistroWindows.OpenKeyReadOnly(LChaveRegistro) and
+      LRegistroWindows.ValueExists('Search Path') then
+      Exit(LRegistroWindows.ReadString('Search Path'));
+    LRegistroWindows.CloseKey;
+    LRegistroWindows.RootKey := HKEY_LOCAL_MACHINE;
+    if LRegistroWindows.OpenKeyReadOnly(LChaveRegistro) and
+      LRegistroWindows.ValueExists('Search Path') then
+      Result := LRegistroWindows.ReadString('Search Path');
   finally
-    LRegistro.Free;
+    LRegistroWindows.Free;
   end;
 end;
 
@@ -391,16 +391,16 @@ end;
 function TServicoInstalacaoDaikit.PacoteRegistrado: Boolean;
 var
   LCaminho: string;
-  LRegistro: TRegistry;
+  LRegistroWindows: TRegistry;
 begin
   LCaminho := TPath.Combine(DiretorioBPL, PACOTE_DESIGN);
-  LRegistro := TRegistry.Create(KEY_READ or KEY_WOW64_32KEY);
+  LRegistroWindows := TRegistry.Create(KEY_READ or KEY_WOW64_32KEY);
   try
-    LRegistro.RootKey := HKEY_CURRENT_USER;
-    Result := LRegistro.OpenKeyReadOnly(CHAVE_PACOTES) and
-      LRegistro.ValueExists(LCaminho) and TFile.Exists(LCaminho);
+    LRegistroWindows.RootKey := HKEY_CURRENT_USER;
+    Result := LRegistroWindows.OpenKeyReadOnly(CHAVE_PACOTES) and
+      LRegistroWindows.ValueExists(LCaminho) and TFile.Exists(LCaminho);
   finally
-    LRegistro.Free;
+    LRegistroWindows.Free;
   end;
 end;
 
@@ -412,17 +412,17 @@ end;
 procedure TServicoInstalacaoDaikit.RegistrarPacote(
   const ACaminho: string);
 var
-  LRegistro: TRegistry;
+  LRegistroWindows: TRegistry;
 begin
-  LRegistro := TRegistry.Create(KEY_READ or KEY_WRITE or KEY_WOW64_32KEY);
+  LRegistroWindows := TRegistry.Create(KEY_READ or KEY_WRITE or KEY_WOW64_32KEY);
   try
-    LRegistro.RootKey := HKEY_CURRENT_USER;
-    if not LRegistro.OpenKey(CHAVE_PACOTES, True) then
+    LRegistroWindows.RootKey := HKEY_CURRENT_USER;
+    if not LRegistroWindows.OpenKey(CHAVE_PACOTES, True) then
       raise EInstaladorDaikit.Create(
         'Nao foi possivel registrar o pacote no Delphi.');
-    LRegistro.WriteString(ACaminho, DESCRICAO_PACOTE);
+    LRegistroWindows.WriteString(ACaminho, DESCRICAO_PACOTE);
   finally
-    LRegistro.Free;
+    LRegistroWindows.Free;
   end;
 end;
 
@@ -435,17 +435,17 @@ end;
 procedure TServicoInstalacaoDaikit.RemoverRegistroPacote;
 var
   LCaminho: string;
-  LRegistro: TRegistry;
+  LRegistroWindows: TRegistry;
 begin
   LCaminho := TPath.Combine(DiretorioBPL, PACOTE_DESIGN);
-  LRegistro := TRegistry.Create(KEY_READ or KEY_WRITE or KEY_WOW64_32KEY);
+  LRegistroWindows := TRegistry.Create(KEY_READ or KEY_WRITE or KEY_WOW64_32KEY);
   try
-    LRegistro.RootKey := HKEY_CURRENT_USER;
-    if LRegistro.OpenKey(CHAVE_PACOTES, False) and
-      LRegistro.ValueExists(LCaminho) then
-      LRegistro.DeleteValue(LCaminho);
+    LRegistroWindows.RootKey := HKEY_CURRENT_USER;
+    if LRegistroWindows.OpenKey(CHAVE_PACOTES, False) and
+      LRegistroWindows.ValueExists(LCaminho) then
+      LRegistroWindows.DeleteValue(LCaminho);
   finally
-    LRegistro.Free;
+    LRegistroWindows.Free;
   end;
 end;
 

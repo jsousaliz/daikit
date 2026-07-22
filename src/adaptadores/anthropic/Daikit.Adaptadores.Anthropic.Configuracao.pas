@@ -3,12 +3,18 @@ unit Daikit.Adaptadores.Anthropic.Configuracao;
 interface
 
 uses
-  Daikit.Infraestrutura.HTTP.Constantes,
   Daikit.Adaptadores.Configuracao,
   Daikit.Adaptadores.Anthropic.Constantes,
   Daikit.Adaptadores.Anthropic.Interfaces;
 
 type
+  TOpcoesConfiguracaoAnthropic = record
+    Comum: TOpcoesConfiguracaoAdaptadorIA;
+    VersaoAPI: string;
+    MaximoTokens: Integer;
+    class function Padrao: TOpcoesConfiguracaoAnthropic; static;
+  end;
+
   TConfiguracaoAnthropic = class(TConfiguracaoAdaptadorIA,
     IConfiguracaoAnthropic)
   private
@@ -17,13 +23,8 @@ type
     function ObterVersaoAPI: string;
     function ObterMaximoTokens: Integer;
   public
-    constructor Create(const AEndpoint: string = CEndpointMensagensAnthropic;
-      const AModeloPadrao: string = CModeloAnthropicPadrao;
-      const AVersaoAPI: string = CVersaoAPIAnthropic;
-      AMaximoTokens: Integer = CMaximoTokensSaidaPadraoAnthropic;
-      ATimeoutConexaoMS: Integer = CTimeoutConexaoPadraoMS;
-      ATimeoutRespostaMS: Integer = CTimeoutRespostaPadraoMS;
-      ALimiteRespostaBytes: Int64 = CLimiteRespostaPadraoBytes);
+    constructor Create; overload;
+    constructor Create(const AOpcoes: TOpcoesConfiguracaoAnthropic); overload;
   end;
 
 implementation
@@ -32,21 +33,32 @@ uses
   System.SysUtils,
   Daikit.Adaptadores.Anthropic.Excecoes;
 
-constructor TConfiguracaoAnthropic.Create(const AEndpoint, AModeloPadrao,
-  AVersaoAPI: string; AMaximoTokens, ATimeoutConexaoMS,
-  ATimeoutRespostaMS: Integer; ALimiteRespostaBytes: Int64);
+class function TOpcoesConfiguracaoAnthropic.Padrao:
+  TOpcoesConfiguracaoAnthropic;
 begin
-  inherited Create('Anthropic', AEndpoint, AModeloPadrao,
-    ATimeoutConexaoMS, ATimeoutRespostaMS, ALimiteRespostaBytes,
-    EConfiguracaoAnthropic);
-  if Trim(AVersaoAPI) = '' then
+  Result.Comum := TOpcoesConfiguracaoAdaptadorIA.Padrao(
+    CEndpointMensagensAnthropic, CModeloAnthropicPadrao);
+  Result.VersaoAPI := CVersaoAPIAnthropic;
+  Result.MaximoTokens := CMaximoTokensSaidaPadraoAnthropic;
+end;
+
+constructor TConfiguracaoAnthropic.Create;
+begin
+  Create(TOpcoesConfiguracaoAnthropic.Padrao);
+end;
+
+constructor TConfiguracaoAnthropic.Create(
+  const AOpcoes: TOpcoesConfiguracaoAnthropic);
+begin
+  inherited Create('Anthropic', AOpcoes.Comum, EConfiguracaoAnthropic);
+  if Trim(AOpcoes.VersaoAPI) = '' then
     raise EConfiguracaoAnthropic.Create(
       'A versao da API Anthropic deve ser informada.');
-  if AMaximoTokens <= 0 then
+  if AOpcoes.MaximoTokens <= 0 then
     raise EConfiguracaoAnthropic.Create(
       'O maximo de tokens Anthropic deve ser maior que zero.');
-  FVersaoAPI := AVersaoAPI;
-  FMaximoTokens := AMaximoTokens;
+  FVersaoAPI := AOpcoes.VersaoAPI;
+  FMaximoTokens := AOpcoes.MaximoTokens;
 end;
 
 function TConfiguracaoAnthropic.ObterMaximoTokens: Integer;

@@ -62,8 +62,9 @@ type
     [Test] procedure Conversa_DeveNotificarAdicaoEAlteracao;
     [Test] procedure Conversa_DeveNotificarLimpezaSomenteQuandoAlterada;
     [Test] procedure Conversa_DeveNotificarTrocaDeArmazenamento;
-    [Test] procedure Chat_DeveEnviarComProvedorInjetadoEManterHistorico;
+    [Test] procedure Chat_DeveEnviarComProvedorFalsoEManterHistorico;
     [Test] procedure Chat_MensagemIsoladaNaoDeveAlterarHistorico;
+    [Test] procedure Chat_DeveExigirConversa;
     [Test] procedure Chat_DeveNotificarErroEConclusao;
     [Test] procedure Chat_DevePermitirDestruicaoNoEventoConclusao;
     [Test] procedure Chat_DeveLimparReferenciasDeComponentesDestruidos;
@@ -88,6 +89,7 @@ uses
   Daikit.Infraestrutura.HTTP.Interfaces,
   Daikit.Infraestrutura.HTTP.Modelos,
   Daikit.Testes.AdaptadorFalso,
+  Daikit.Testes.ProvedorFalso,
   Daikit.Testes.TransporteHTTPFalso,
   Daikit.Testes.Fixtures.OpenAI;
 
@@ -149,19 +151,19 @@ end;
 class function TTestesComponentes.ComponenteComoTexto(
   AComponente: TComponent): string;
 var
-  LBinario: TMemoryStream;
-  LTexto: TStringStream;
+  LStreamBinario: TMemoryStream;
+  LStreamTexto: TStringStream;
 begin
-  LBinario := TMemoryStream.Create;
-  LTexto := TStringStream.Create('', TEncoding.UTF8);
+  LStreamBinario := TMemoryStream.Create;
+  LStreamTexto := TStringStream.Create('', TEncoding.UTF8);
   try
-    LBinario.WriteComponent(AComponente);
-    LBinario.Position := 0;
-    ObjectBinaryToText(LBinario, LTexto);
-    Result := LTexto.DataString;
+    LStreamBinario.WriteComponent(AComponente);
+    LStreamBinario.Position := 0;
+    ObjectBinaryToText(LStreamBinario, LStreamTexto);
+    Result := LStreamTexto.DataString;
   finally
-    LTexto.Free;
-    LBinario.Free;
+    LStreamTexto.Free;
+    LStreamBinario.Free;
   end;
 end;
 
@@ -188,26 +190,31 @@ begin
   end;
 end;
 
-procedure TTestesComponentes.Chat_DeveEnviarComProvedorInjetadoEManterHistorico;
+procedure TTestesComponentes.Chat_DeveEnviarComProvedorFalsoEManterHistorico;
 var
   LChat: TChatIA;
-  LFalsoObjeto: TAdaptadorIAFalso;
-  LFalso: IAdaptadorIA;
+  LObjetoAdaptadorFalso: TAdaptadorIAFalso;
+  LAdaptadorFalso: IAdaptadorIA;
   LObservador: TObservadorChatIA;
+  LProvedor: TProvedorIAFalso;
+  LConversa: TConversaIA;
 begin
   LChat := TChatIA.Create(nil);
   LObservador := TObservadorChatIA.Create;
   try
-    LFalsoObjeto := TAdaptadorIAFalso.Create('Eco: ');
-    LFalso := LFalsoObjeto;
-    LChat.DefinirAdaptadorInjetado(LFalso);
+    LObjetoAdaptadorFalso := TAdaptadorIAFalso.Create('Eco: ');
+    LAdaptadorFalso := LObjetoAdaptadorFalso;
+    LProvedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LConversa := TConversaIA.Create(LChat);
+    LChat.Provedor := LProvedor;
+    LChat.Conversa := LConversa;
     LChat.Modelo := 'modelo-teste';
     LChat.AoIniciarRequisicao := LObservador.AoIniciar;
     LChat.AoReceberResposta := LObservador.AoResponder;
     LChat.AoConcluir := LObservador.AoConcluir;
     Assert.AreEqual('Eco: primeira', LChat.EnviarTexto('primeira'));
     Assert.AreEqual(2, Integer(Length(LChat.ObterMensagens)));
-    Assert.AreEqual('modelo-teste', LFalsoObjeto.UltimaRequisicao.Modelo);
+    Assert.AreEqual('modelo-teste', LObjetoAdaptadorFalso.UltimaRequisicao.Modelo);
     Assert.AreEqual(TEstadoChatIA.Executando,
       LObservador.FEstadoNoInicio);
     Assert.AreEqual(TEstadoChatIA.Ocioso,
@@ -227,22 +234,23 @@ const
 var
   LCabecalhos: TArray<TCabecalhoHTTP>;
   LChat: TChatIA;
-  LObjetoTransporte: TTransporteHTTPFalso;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
   LObservador: TObservadorChatIA;
   LProvedor: TProvedorOpenAI;
-  LTransporte: ITransporteHTTP;
+  LTransporteHTTP: ITransporteHTTP;
 begin
   LChat := TChatIA.Create(nil);
   LProvedor := TProvedorOpenAI.Create(nil);
   LObservador := TObservadorChatIA.Create;
   try
-    LObjetoTransporte := TTransporteHTTPFalso.Create;
-    LTransporte := LObjetoTransporte;
-    LObjetoTransporte.ProgramarResposta(TRespostaHTTP.Create(200, 'OK',
+    LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+    LTransporteHTTP := LTransporteHTTPFalso;
+    LTransporteHTTPFalso.ProgramarResposta(TRespostaHTTP.Create(200, 'OK',
       LCabecalhos, CRespostaOpenAISucesso));
-    LProvedor.DefinirTransporte(LTransporte);
+    LProvedor.DefinirTransporte(LTransporteHTTP);
     LProvedor.ChaveAPI := CChaveAPITeste;
     LChat.Provedor := LProvedor;
+    LChat.Conversa := TConversaIA.Create(LChat);
     LChat.AoRegistrarLog := LObservador.AoLog;
 
     LChat.EnviarTexto('pergunta que deve ficar visivel');
@@ -264,16 +272,16 @@ end;
 
 procedure TTestesComponentes.Chat_DeveLimparReferenciasDeComponentesDestruidos;
 var
-  LOwner: TComponent;
+  LProprietarioComponentes: TComponent;
   LChat: TChatIA;
   LProvedor: TProvedorOpenAI;
   LConversa: TConversaIA;
 begin
-  LOwner := TComponent.Create(nil);
+  LProprietarioComponentes := TComponent.Create(nil);
   try
-    LChat := TChatIA.Create(LOwner);
-    LProvedor := TProvedorOpenAI.Create(LOwner);
-    LConversa := TConversaIA.Create(LOwner);
+    LChat := TChatIA.Create(LProprietarioComponentes);
+    LProvedor := TProvedorOpenAI.Create(LProprietarioComponentes);
+    LConversa := TConversaIA.Create(LProprietarioComponentes);
     LChat.Provedor := LProvedor;
     LChat.Conversa := LConversa;
     LProvedor.Free;
@@ -281,7 +289,7 @@ begin
     Assert.IsNull(LChat.Provedor);
     Assert.IsNull(LChat.Conversa);
   finally
-    LOwner.Free;
+    LProprietarioComponentes.Free;
   end;
 end;
 
@@ -293,6 +301,7 @@ begin
   LChat := TChatIA.Create(nil);
   LObservador := TObservadorChatIA.Create;
   try
+    LChat.Conversa := TConversaIA.Create(LChat);
     LChat.AoOcorrerErro := LObservador.AoErro;
     LChat.AoConcluir := LObservador.AoConcluir;
     Assert.WillRaise(
@@ -310,17 +319,38 @@ begin
   end;
 end;
 
+procedure TTestesComponentes.Chat_DeveExigirConversa;
+var
+  LChat: TChatIA;
+  LAdaptadorFalso: IAdaptadorIA;
+begin
+  LChat := TChatIA.Create(nil);
+  try
+    LAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    Assert.WillRaise(
+      TTestLocalMethod(procedure
+      begin
+        LChat.Enviar('sem conversa');
+      end),
+      EConfiguracaoComponenteIA);
+  finally
+    LChat.Free;
+  end;
+end;
+
 procedure TTestesComponentes.Chat_DevePermitirDestruicaoNoEventoConclusao;
 var
   LChat: TChatIA;
-  LFalso: IAdaptadorIA;
+  LAdaptadorFalso: IAdaptadorIA;
   LObservador: TObservadorChatIA;
 begin
   LChat := TChatIA.Create(nil);
   LObservador := TObservadorChatIA.Create;
   try
-    LFalso := TAdaptadorIAFalso.Create;
-    LChat.DefinirAdaptadorInjetado(LFalso);
+    LAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LChat.Conversa := TConversaIA.Create(LChat);
     LObservador.FChatParaDestruir := LChat;
     LChat.AoConcluir := LObservador.AoConcluirDestruindo;
     LChat.Enviar('mensagem');
@@ -334,12 +364,13 @@ end;
 procedure TTestesComponentes.Chat_MensagemIsoladaNaoDeveAlterarHistorico;
 var
   LChat: TChatIA;
-  LFalso: IAdaptadorIA;
+  LAdaptadorFalso: IAdaptadorIA;
 begin
   LChat := TChatIA.Create(nil);
   try
-    LFalso := TAdaptadorIAFalso.Create;
-    LChat.DefinirAdaptadorInjetado(LFalso);
+    LAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LChat.Conversa := TConversaIA.Create(LChat);
     LChat.ModoConversa := TModoConversaIA.MensagemIsolada;
     LChat.Enviar('mensagem');
     Assert.AreEqual(0, Integer(Length(LChat.ObterMensagens)));
@@ -350,41 +381,41 @@ end;
 
 procedure TTestesComponentes.Componentes_DevemPreservarReferenciasNoDFM;
 var
-  LRaiz: TComponent;
-  LCopia: TComponent;
+  LComponenteRaiz: TComponent;
+  LCopiaComponente: TComponent;
   LChat: TChatIA;
   LChatCopia: TChatIA;
   LProvedor: TProvedorOpenAI;
   LConversa: TConversaIA;
-  LBinario: TMemoryStream;
+  LStreamBinario: TMemoryStream;
 begin
-  LRaiz := TDataModule.Create(nil);
-  LBinario := TMemoryStream.Create;
-  LCopia := nil;
+  LComponenteRaiz := TDataModule.Create(nil);
+  LStreamBinario := TMemoryStream.Create;
+  LCopiaComponente := nil;
   try
-    LRaiz.Name := 'Raiz';
-    LProvedor := TProvedorOpenAI.Create(LRaiz);
+    LComponenteRaiz.Name := 'Raiz';
+    LProvedor := TProvedorOpenAI.Create(LComponenteRaiz);
     LProvedor.Name := 'ProvedorOpenAI';
-    LConversa := TConversaIA.Create(LRaiz);
+    LConversa := TConversaIA.Create(LComponenteRaiz);
     LConversa.Name := 'ConversaIA';
-    LChat := TChatIA.Create(LRaiz);
+    LChat := TChatIA.Create(LComponenteRaiz);
     LChat.Name := 'ChatIA';
     LChat.Provedor := LProvedor;
     LChat.Conversa := LConversa;
-    LBinario.WriteComponent(LRaiz);
-    LBinario.Position := 0;
-    LCopia := LBinario.ReadComponent(nil);
-    Assert.IsNotNull(LCopia);
-    Assert.IsNotNull(LCopia.FindComponent('ChatIA'));
-    LChatCopia := LCopia.FindComponent('ChatIA') as TChatIA;
-    Assert.AreSame(LCopia.FindComponent('ProvedorOpenAI'),
+    LStreamBinario.WriteComponent(LComponenteRaiz);
+    LStreamBinario.Position := 0;
+    LCopiaComponente := LStreamBinario.ReadComponent(nil);
+    Assert.IsNotNull(LCopiaComponente);
+    Assert.IsNotNull(LCopiaComponente.FindComponent('ChatIA'));
+    LChatCopia := LCopiaComponente.FindComponent('ChatIA') as TChatIA;
+    Assert.AreSame(LCopiaComponente.FindComponent('ProvedorOpenAI'),
       LChatCopia.Provedor);
-    Assert.AreSame(LCopia.FindComponent('ConversaIA'),
+    Assert.AreSame(LCopiaComponente.FindComponent('ConversaIA'),
       LChatCopia.Conversa);
   finally
-    LCopia.Free;
-    LBinario.Free;
-    LRaiz.Free;
+    LCopiaComponente.Free;
+    LStreamBinario.Free;
+    LComponenteRaiz.Free;
   end;
 end;
 
@@ -398,9 +429,9 @@ begin
   try
     LConversa.AoAdicionar := LObservador.AoAdicionar;
     LConversa.AoAlterar := LObservador.AoAlterar;
-    LConversa.AdicionarSistema('instrucao');
-    LConversa.AdicionarUsuario('pergunta');
-    LConversa.AdicionarAssistente('resposta');
+    LConversa.AdicionarMensagemSistema('instrucao');
+    LConversa.AdicionarMensagemUsuario('pergunta');
+    LConversa.AdicionarMensagemAssistente('resposta');
     Assert.AreEqual(3, LObservador.FAdicoes);
     Assert.AreEqual(3, LObservador.FAlteracoes);
     Assert.IsNotNull(LObservador.FUltimaMensagem);
@@ -421,7 +452,7 @@ begin
   LConversa := TConversaIA.Create(nil);
   LObservador := TObservadorConversaIA.Create;
   try
-    LConversa.AdicionarUsuario('mensagem');
+    LConversa.AdicionarMensagemUsuario('mensagem');
     LConversa.AoLimpar := LObservador.AoLimpar;
     LConversa.AoAlterar := LObservador.AoAlterar;
     LConversa.Limpar;
@@ -445,7 +476,7 @@ begin
   LConversa := TConversaIA.Create(nil);
   LObservador := TObservadorConversaIA.Create;
   try
-    LConversa.AdicionarUsuario('mensagem preservada');
+    LConversa.AdicionarMensagemUsuario('mensagem preservada');
     LConversa.AoAlterar := LObservador.AoAlterar;
     Assert.WillRaise(
       TTestLocalMethod(procedure
@@ -470,9 +501,9 @@ var
 begin
   LConversa := TConversaIA.Create(nil);
   try
-    LConversa.AdicionarSistema('instrucao');
-    LConversa.AdicionarUsuario('pergunta');
-    LConversa.AdicionarAssistente('resposta');
+    LConversa.AdicionarMensagemSistema('instrucao');
+    LConversa.AdicionarMensagemUsuario('pergunta');
+    LConversa.AdicionarMensagemAssistente('resposta');
     Assert.AreEqual(3, LConversa.Quantidade);
     Assert.AreEqual(3, Integer(Length(LConversa.ObterMensagens)));
     LConversa.Limpar;
@@ -507,59 +538,59 @@ end;
 
 procedure TTestesComponentes.Provedores_DevemCriarAdaptadoresCanonicos;
 var
-  LOpenAI: TProvedorOpenAI;
-  LAnthropic: TProvedorAnthropic;
-  LGemini: TProvedorGemini;
+  LProvedorOpenAI: TProvedorOpenAI;
+  LProvedorAnthropic: TProvedorAnthropic;
+  LProvedorGemini: TProvedorGemini;
 begin
-  LOpenAI := TProvedorOpenAI.Create(nil);
-  LAnthropic := TProvedorAnthropic.Create(nil);
-  LGemini := TProvedorGemini.Create(nil);
+  LProvedorOpenAI := TProvedorOpenAI.Create(nil);
+  LProvedorAnthropic := TProvedorAnthropic.Create(nil);
+  LProvedorGemini := TProvedorGemini.Create(nil);
   try
-    Assert.IsNotNull(LOpenAI.CriarAdaptador);
-    Assert.IsNotNull(LAnthropic.CriarAdaptador);
-    Assert.IsNotNull(LGemini.CriarAdaptador);
+    Assert.IsNotNull(LProvedorOpenAI.CriarAdaptador);
+    Assert.IsNotNull(LProvedorAnthropic.CriarAdaptador);
+    Assert.IsNotNull(LProvedorGemini.CriarAdaptador);
   finally
-    LGemini.Free;
-    LAnthropic.Free;
-    LOpenAI.Free;
+    LProvedorGemini.Free;
+    LProvedorAnthropic.Free;
+    LProvedorOpenAI.Free;
   end;
 end;
 
 procedure TTestesComponentes.Provedores_DevemExporPadroesSeguros;
 var
-  LOpenAI: TProvedorOpenAI;
-  LAnthropic: TProvedorAnthropic;
-  LGemini: TProvedorGemini;
+  LProvedorOpenAI: TProvedorOpenAI;
+  LProvedorAnthropic: TProvedorAnthropic;
+  LProvedorGemini: TProvedorGemini;
 begin
-  LOpenAI := TProvedorOpenAI.Create(nil);
-  LAnthropic := TProvedorAnthropic.Create(nil);
-  LGemini := TProvedorGemini.Create(nil);
+  LProvedorOpenAI := TProvedorOpenAI.Create(nil);
+  LProvedorAnthropic := TProvedorAnthropic.Create(nil);
+  LProvedorGemini := TProvedorGemini.Create(nil);
   try
-    Assert.AreEqual(CEndpointRespostasOpenAI, LOpenAI.Endpoint);
-    Assert.AreEqual(CModeloOpenAIRecomendado, LOpenAI.ModeloPadrao);
+    Assert.AreEqual(CEndpointRespostasOpenAI, LProvedorOpenAI.Endpoint);
+    Assert.AreEqual(CModeloOpenAIRecomendado, LProvedorOpenAI.ModeloPadrao);
     Assert.AreEqual(CVariavelAmbienteChaveOpenAI,
-      LOpenAI.VariavelAmbienteChaveAPI);
-    Assert.AreEqual(CEndpointMensagensAnthropic, LAnthropic.Endpoint);
-    Assert.AreEqual(CModeloAnthropicPadrao, LAnthropic.ModeloPadrao);
+      LProvedorOpenAI.VariavelAmbienteChaveAPI);
+    Assert.AreEqual(CEndpointMensagensAnthropic, LProvedorAnthropic.Endpoint);
+    Assert.AreEqual(CModeloAnthropicPadrao, LProvedorAnthropic.ModeloPadrao);
     Assert.AreEqual(CVariavelAmbienteChaveAnthropic,
-      LAnthropic.VariavelAmbienteChaveAPI);
-    Assert.AreEqual(CEndpointInteracoesGemini, LGemini.Endpoint);
-    Assert.AreEqual(CModeloGeminiPadrao, LGemini.ModeloPadrao);
+      LProvedorAnthropic.VariavelAmbienteChaveAPI);
+    Assert.AreEqual(CEndpointInteracoesGemini, LProvedorGemini.Endpoint);
+    Assert.AreEqual(CModeloGeminiPadrao, LProvedorGemini.ModeloPadrao);
     Assert.AreEqual(CVariavelAmbienteChaveGemini,
-      LGemini.VariavelAmbienteChaveAPI);
+      LProvedorGemini.VariavelAmbienteChaveAPI);
     Assert.AreEqual(CTimeoutConexaoComponentePadraoMS,
-      LOpenAI.TimeoutConexaoMS);
+      LProvedorOpenAI.TimeoutConexaoMS);
     Assert.AreEqual(CTimeoutRespostaComponentePadraoMS,
-      LAnthropic.TimeoutRespostaMS);
+      LProvedorAnthropic.TimeoutRespostaMS);
     Assert.AreEqual(Int64(CLimiteRespostaComponentePadraoBytes),
-      LGemini.LimiteRespostaBytes);
-    Assert.AreEqual('', LOpenAI.ChaveAPI);
-    Assert.AreEqual('', LAnthropic.ChaveAPI);
-    Assert.AreEqual('', LGemini.ChaveAPI);
+      LProvedorGemini.LimiteRespostaBytes);
+    Assert.AreEqual('', LProvedorOpenAI.ChaveAPI);
+    Assert.AreEqual('', LProvedorAnthropic.ChaveAPI);
+    Assert.AreEqual('', LProvedorGemini.ChaveAPI);
   finally
-    LGemini.Free;
-    LAnthropic.Free;
-    LOpenAI.Free;
+    LProvedorGemini.Free;
+    LProvedorAnthropic.Free;
+    LProvedorOpenAI.Free;
   end;
 end;
 

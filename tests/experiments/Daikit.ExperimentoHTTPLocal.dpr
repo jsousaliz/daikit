@@ -34,18 +34,20 @@ end;
 procedure VerificarResposta;
 var
   LServidor: TServidorHTTPLocal;
-  LTransporte: ITransporteHTTP;
-  LRequisicao: IRequisicaoHTTP;
-  LResposta: IRespostaHTTP;
+  LTransporteHTTP: ITransporteHTTP;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
+  LRespostaHTTP: IRespostaHTTP;
 begin
   LServidor := TServidorHTTPLocal.Create(
     TComportamentoServidorHTTPLocal.RespostaImediata);
   try
-    LTransporte := TTransporteHTTPClient.Create;
-    LRequisicao := TRequisicaoHTTP.Create(TMetodoHTTP.Get,
-      LServidor.URL, nil);
-    LResposta := LTransporte.Enviar(LRequisicao);
-    Verificar((LResposta.Status = 200) and (LResposta.Corpo = '{}'),
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+    LOpcoesRequisicaoHTTP.URL := LServidor.URL;
+    LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
+    LRespostaHTTP := LTransporteHTTP.Enviar(LRequisicaoHTTP);
+    Verificar((LRespostaHTTP.Status = 200) and (LRespostaHTTP.Corpo = '{}'),
       'A resposta local nao corresponde ao esperado.');
   finally
     LServidor.Free;
@@ -55,20 +57,22 @@ end;
 procedure VerificarTimeout;
 var
   LServidor: TServidorHTTPLocal;
-  LTransporte: ITransporteHTTP;
-  LRequisicao: IRequisicaoHTTP;
+  LTransporteHTTP: ITransporteHTTP;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
   LTimeoutOcorreu: Boolean;
 begin
   LServidor := TServidorHTTPLocal.Create(
     TComportamentoServidorHTTPLocal.RespostaAtrasada, CAtrasoServidorMS);
   try
-    LTransporte := TTransporteHTTPClient.Create;
-    LRequisicao := TRequisicaoHTTP.Create(TMetodoHTTP.Get,
-      LServidor.URL, nil, '', CTimeoutConexaoPadraoMS,
-      CTimeoutRespostaMS);
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+    LOpcoesRequisicaoHTTP.URL := LServidor.URL;
+    LOpcoesRequisicaoHTTP.TimeoutRespostaMS := CTimeoutRespostaMS;
+    LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
     LTimeoutOcorreu := False;
     try
-      LTransporte.Enviar(LRequisicao);
+      LTransporteHTTP.Enviar(LRequisicaoHTTP);
     except
       on E: ETimeoutHTTP do
         LTimeoutOcorreu := True;
@@ -82,20 +86,22 @@ end;
 procedure VerificarLimite;
 var
   LServidor: TServidorHTTPLocal;
-  LTransporte: ITransporteHTTP;
-  LRequisicao: IRequisicaoHTTP;
+  LTransporteHTTP: ITransporteHTTP;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
   LLimiteOcorreu: Boolean;
 begin
   LServidor := TServidorHTTPLocal.Create(
     TComportamentoServidorHTTPLocal.RespostaExcessiva);
   try
-    LTransporte := TTransporteHTTPClient.Create;
-    LRequisicao := TRequisicaoHTTP.Create(TMetodoHTTP.Get,
-      LServidor.URL, nil, '', CTimeoutConexaoPadraoMS,
-      CTimeoutRespostaPadraoMS, CLimiteRespostaBytes);
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+    LOpcoesRequisicaoHTTP.URL := LServidor.URL;
+    LOpcoesRequisicaoHTTP.LimiteRespostaBytes := CLimiteRespostaBytes;
+    LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
     LLimiteOcorreu := False;
     try
-      LTransporte.Enviar(LRequisicao);
+      LTransporteHTTP.Enviar(LRequisicaoHTTP);
     except
       on E: ELimiteRespostaHTTP do
         LLimiteOcorreu := True;
@@ -109,9 +115,10 @@ end;
 procedure VerificarCancelamento;
 var
   LServidor: TServidorHTTPLocal;
-  LTransporte: ITransporteHTTP;
-  LRequisicao: IRequisicaoHTTP;
-  LToken: ITokenCancelamentoIA;
+  LTransporteHTTP: ITransporteHTTP;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
+  LTokenCancelamento: ITokenCancelamentoIA;
   LThread: TThread;
   LCancelamentoOcorreu: Boolean;
 begin
@@ -119,21 +126,22 @@ begin
     TComportamentoServidorHTTPLocal.RespostaAtrasada, CAtrasoServidorMS);
   LThread := nil;
   try
-    LTransporte := TTransporteHTTPClient.Create;
-    LRequisicao := TRequisicaoHTTP.Create(TMetodoHTTP.Get,
-      LServidor.URL, nil);
-    LToken := TTokenCancelamentoIA.Create;
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+    LOpcoesRequisicaoHTTP.URL := LServidor.URL;
+    LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
+    LTokenCancelamento := TTokenCancelamentoIA.Create;
     LThread := TThread.CreateAnonymousThread(
       procedure
       begin
         TThread.Sleep(CEsperaCancelamentoMS);
-        LToken.Cancelar;
+        LTokenCancelamento.Cancelar;
       end);
     LThread.FreeOnTerminate := False;
     LThread.Start;
     LCancelamentoOcorreu := False;
     try
-      LTransporte.Enviar(LRequisicao, LToken);
+      LTransporteHTTP.Enviar(LRequisicaoHTTP, LTokenCancelamento);
     except
       on E: EOperacaoCanceladaIA do
         LCancelamentoOcorreu := True;

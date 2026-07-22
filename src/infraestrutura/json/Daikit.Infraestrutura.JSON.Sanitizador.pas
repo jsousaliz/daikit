@@ -29,68 +29,68 @@ uses
 class function TSanitizadorJSON.EhChaveConteudo(
   const ANome: string): Boolean;
 var
-  LNome: string;
+  LNomeNormalizado: string;
 begin
-  LNome := NormalizarNome(ANome);
-  Result := (LNome = CChaveJSONTexto) or
-    (LNome = CChaveJSONConteudo) or
-    (LNome = CChaveJSONEntrada) or
-    (LNome = CChaveJSONSaida) or
-    (LNome = CChaveJSONSistema) or
-    (LNome = CChaveJSONInstrucaoSistema) or
-    (LNome = CChaveJSONPrompt) or
-    (LNome = CChaveJSONMensagem) or
-    (LNome = CChaveJSONMensagens) or
-    (LNome = CChaveJSONResposta) or
-    (LNome = CChaveJSONConclusao);
+  LNomeNormalizado := NormalizarNome(ANome);
+  Result := (LNomeNormalizado = CChaveJSONTexto) or
+    (LNomeNormalizado = CChaveJSONConteudo) or
+    (LNomeNormalizado = CChaveJSONEntrada) or
+    (LNomeNormalizado = CChaveJSONSaida) or
+    (LNomeNormalizado = CChaveJSONSistema) or
+    (LNomeNormalizado = CChaveJSONInstrucaoSistema) or
+    (LNomeNormalizado = CChaveJSONPrompt) or
+    (LNomeNormalizado = CChaveJSONMensagem) or
+    (LNomeNormalizado = CChaveJSONMensagens) or
+    (LNomeNormalizado = CChaveJSONResposta) or
+    (LNomeNormalizado = CChaveJSONConclusao);
 end;
 
 class function TSanitizadorJSON.EhChaveOpaca(const ANome: string): Boolean;
 var
-  LNome: string;
+  LNomeNormalizado: string;
 begin
-  LNome := NormalizarNome(ANome);
-  Result := (LNome = CChaveJSONAssinatura) or
-    (LNome = CChaveJSONAssinaturaPensamento) or
-    (LNome = CChaveJSONConteudoCriptografado) or
-    (LNome = CChaveJSONRaciocinio) or
-    (LNome = CChaveJSONConteudoRaciocinio) or
-    (LNome = CChaveJSONPensamento) or
-    (LNome = CChaveJSONPensando) or
-    (LNome = CChaveJSONResumo);
+  LNomeNormalizado := NormalizarNome(ANome);
+  Result := (LNomeNormalizado = CChaveJSONAssinatura) or
+    (LNomeNormalizado = CChaveJSONAssinaturaPensamento) or
+    (LNomeNormalizado = CChaveJSONConteudoCriptografado) or
+    (LNomeNormalizado = CChaveJSONRaciocinio) or
+    (LNomeNormalizado = CChaveJSONConteudoRaciocinio) or
+    (LNomeNormalizado = CChaveJSONPensamento) or
+    (LNomeNormalizado = CChaveJSONPensando) or
+    (LNomeNormalizado = CChaveJSONResumo);
 end;
 
 class function TSanitizadorJSON.EhChaveSensivel(
   const ANome: string): Boolean;
 var
-  LNome: string;
+  LNomeNormalizado: string;
 begin
-  LNome := NormalizarNome(ANome);
-  Result := (LNome = CChaveJSONAutorizacao) or
-    (LNome = CChaveJSONAutorizacaoProxy) or
-    ContainsText(LNome, CChaveJSONAutorizacao) or
-    (LNome = CChaveJSONChaveAPI) or
-    (LNome = CChaveJSONChaveAPISemSeparador) or
-    ContainsText(LNome, CChaveJSONChaveAPI) or
-    ContainsText(LNome, CChaveJSONChaveAPISemSeparador) or
-    (LNome = CChaveJSONChaveAPIGoogle) or
-    (LNome = CChaveJSONChaveAPIComPrefixoX) or
-    (LNome = CChaveJSONTokenAcesso) or
-    (LNome = CChaveJSONTokenAtualizacao) or
-    (LNome = CChaveJSONToken) or
-    EndsText('_token', LNome) or
-    ContainsText('_token_', LNome) or
-    ContainsText(LNome, CChaveJSONSenha) or
-    ContainsText(LNome, CChaveJSONSenhaPortugues) or
-    ContainsText(LNome, CChaveJSONSegredo) or
-    (LNome = CChaveJSONSegredoCliente) or
-    ContainsText(LNome, CChaveJSONCookie) or
-    (LNome = CChaveJSONCookieResposta) or
-    (LNome = CChaveJSONChave) or
-    EndsText('_' + CChaveJSONChave, LNome) or
-    (LNome = CChaveJSONChavePortugues) or
-    (LNome = CChaveJSONChaveAPIPortugues) or
-    ContainsText(LNome, CChaveJSONCredencial);
+  LNomeNormalizado := NormalizarNome(ANome);
+  Result := (LNomeNormalizado = CChaveJSONAutorizacao) or
+    (LNomeNormalizado = CChaveJSONAutorizacaoProxy) or
+    ContainsText(LNomeNormalizado, CChaveJSONAutorizacao) or
+    (LNomeNormalizado = CChaveJSONChaveAPI) or
+    (LNomeNormalizado = CChaveJSONChaveAPISemSeparador) or
+    ContainsText(LNomeNormalizado, CChaveJSONChaveAPI) or
+    ContainsText(LNomeNormalizado, CChaveJSONChaveAPISemSeparador) or
+    (LNomeNormalizado = CChaveJSONChaveAPIGoogle) or
+    (LNomeNormalizado = CChaveJSONChaveAPIComPrefixoX) or
+    (LNomeNormalizado = CChaveJSONTokenAcesso) or
+    (LNomeNormalizado = CChaveJSONTokenAtualizacao) or
+    (LNomeNormalizado = CChaveJSONToken) or
+    EndsText('_token', LNomeNormalizado) or
+    ContainsText('_token_', LNomeNormalizado) or
+    ContainsText(LNomeNormalizado, CChaveJSONSenha) or
+    ContainsText(LNomeNormalizado, CChaveJSONSenhaPortugues) or
+    ContainsText(LNomeNormalizado, CChaveJSONSegredo) or
+    (LNomeNormalizado = CChaveJSONSegredoCliente) or
+    ContainsText(LNomeNormalizado, CChaveJSONCookie) or
+    (LNomeNormalizado = CChaveJSONCookieResposta) or
+    (LNomeNormalizado = CChaveJSONChave) or
+    EndsText('_' + CChaveJSONChave, LNomeNormalizado) or
+    (LNomeNormalizado = CChaveJSONChavePortugues) or
+    (LNomeNormalizado = CChaveJSONChaveAPIPortugues) or
+    ContainsText(LNomeNormalizado, CChaveJSONCredencial);
 end;
 
 function PrefixoUnicodeSeguro(const ATexto: string;
@@ -107,28 +107,28 @@ end;
 
 function CriarEnvelopeTruncado(const APrevia: string): string;
 var
-  LEnvelope: TJSONObject;
+  LEnvelopeJSON: TJSONObject;
 begin
-  LEnvelope := TJSONObject.Create;
+  LEnvelopeJSON := TJSONObject.Create;
   try
-    LEnvelope.AddPair(CChaveEnvelopeJSONTruncado, TJSONBool.Create(True));
-    LEnvelope.AddPair(CChaveEnvelopeJSONPrevia, APrevia);
-    Result := LEnvelope.ToJSON;
+    LEnvelopeJSON.AddPair(CChaveEnvelopeJSONTruncado, TJSONBool.Create(True));
+    LEnvelopeJSON.AddPair(CChaveEnvelopeJSONPrevia, APrevia);
+    Result := LEnvelopeJSON.ToJSON;
   finally
-    LEnvelope.Free;
+    LEnvelopeJSON.Free;
   end;
 end;
 
 function CriarEnvelopeRemovido(const AMotivo: string): string;
 var
-  LEnvelope: TJSONObject;
+  LEnvelopeJSON: TJSONObject;
 begin
-  LEnvelope := TJSONObject.Create;
+  LEnvelopeJSON := TJSONObject.Create;
   try
-    LEnvelope.AddPair(CChaveEnvelopeJSONRemovido, AMotivo);
-    Result := LEnvelope.ToJSON;
+    LEnvelopeJSON.AddPair(CChaveEnvelopeJSONRemovido, AMotivo);
+    Result := LEnvelopeJSON.ToJSON;
   finally
-    LEnvelope.Free;
+    LEnvelopeJSON.Free;
   end;
 end;
 
@@ -137,12 +137,12 @@ function SanitizarValor(AValor: TJSONValue; const ANome: string;
   AConteudoHerdado: Boolean): TJSONValue;
 var
   I: Integer;
-  LArray: TJSONArray;
-  LArrayResultado: TJSONArray;
-  LConteudo: Boolean;
-  LObjeto: TJSONObject;
-  LObjetoResultado: TJSONObject;
-  LPar: TJSONPair;
+  LArrayJSON: TJSONArray;
+  LArrayJSONResultado: TJSONArray;
+  LEhConteudo: Boolean;
+  LObjetoJSON: TJSONObject;
+  LObjetoJSONResultado: TJSONObject;
+  LParJSON: TJSONPair;
 begin
   if AProfundidade > CLimiteProfundidadeJSONLog then
     Exit(TJSONString.Create(CValorJSONProfundidadeRemovida));
@@ -150,42 +150,42 @@ begin
     TSanitizadorJSON.EhChaveOpaca(ANome) then
     Exit(TJSONString.Create(CValorJSONSensivelRemovido));
 
-  LConteudo := AConteudoHerdado or TSanitizadorJSON.EhChaveConteudo(ANome);
+  LEhConteudo := AConteudoHerdado or TSanitizadorJSON.EhChaveConteudo(ANome);
   if AValor is TJSONObject then
   begin
-    LObjeto := TJSONObject(AValor);
-    LObjetoResultado := TJSONObject.Create;
+    LObjetoJSON := TJSONObject(AValor);
+    LObjetoJSONResultado := TJSONObject.Create;
     try
-      for I := 0 to LObjeto.Count - 1 do
+      for I := 0 to LObjetoJSON.Count - 1 do
       begin
-        LPar := LObjeto.Pairs[I];
-        LObjetoResultado.AddPair(LPar.JsonString.Value,
-          SanitizarValor(LPar.JsonValue, LPar.JsonString.Value,
-            AIncluirConteudoConversa, AProfundidade + 1, LConteudo));
+        LParJSON := LObjetoJSON.Pairs[I];
+        LObjetoJSONResultado.AddPair(LParJSON.JsonString.Value,
+          SanitizarValor(LParJSON.JsonValue, LParJSON.JsonString.Value,
+            AIncluirConteudoConversa, AProfundidade + 1, LEhConteudo));
       end;
-      Exit(LObjetoResultado);
+      Exit(LObjetoJSONResultado);
     except
-      LObjetoResultado.Free;
+      LObjetoJSONResultado.Free;
       raise;
     end;
   end;
 
   if AValor is TJSONArray then
   begin
-    LArray := TJSONArray(AValor);
-    LArrayResultado := TJSONArray.Create;
+    LArrayJSON := TJSONArray(AValor);
+    LArrayJSONResultado := TJSONArray.Create;
     try
-      for I := 0 to LArray.Count - 1 do
-        LArrayResultado.AddElement(SanitizarValor(LArray.Items[I], '',
-          AIncluirConteudoConversa, AProfundidade + 1, LConteudo));
-      Exit(LArrayResultado);
+      for I := 0 to LArrayJSON.Count - 1 do
+        LArrayJSONResultado.AddElement(SanitizarValor(LArrayJSON.Items[I], '',
+          AIncluirConteudoConversa, AProfundidade + 1, LEhConteudo));
+      Exit(LArrayJSONResultado);
     except
-      LArrayResultado.Free;
+      LArrayJSONResultado.Free;
       raise;
     end;
   end;
 
-  if LConteudo and not AIncluirConteudoConversa then
+  if LEhConteudo and not AIncluirConteudoConversa then
     Exit(TJSONString.Create(CValorJSONConteudoOculto));
   Result := TJSONObject.ParseJSONValue(AValor.ToJSON);
   if Result = nil then
@@ -195,12 +195,12 @@ end;
 class function TSanitizadorJSON.LimitarJSON(const AJSON: string;
   ALimiteBytes: Integer; out ATruncado: Boolean): string;
 var
-  LAlto: Integer;
-  LBaixo: Integer;
-  LCandidato: string;
-  LMelhor: string;
-  LMeio: Integer;
-  LPrevia: string;
+  LIndiceSuperior: Integer;
+  LIndiceInferior: Integer;
+  LJSONCandidato: string;
+  LMelhorJSON: string;
+  LIndiceCentral: Integer;
+  LPrefixoJSON: string;
 begin
   if ALimiteBytes < CLimiteJSONLogMinimoBytes then
     raise EArgumentOutOfRangeException.CreateFmt(
@@ -213,48 +213,48 @@ begin
   end;
 
   ATruncado := True;
-  LBaixo := 0;
-  LAlto := Length(AJSON);
-  LMelhor := CriarEnvelopeTruncado('');
-  while LBaixo <= LAlto do
+  LIndiceInferior := 0;
+  LIndiceSuperior := Length(AJSON);
+  LMelhorJSON := CriarEnvelopeTruncado('');
+  while LIndiceInferior <= LIndiceSuperior do
   begin
-    LMeio := LBaixo + ((LAlto - LBaixo) div 2);
-    LPrevia := PrefixoUnicodeSeguro(AJSON, LMeio);
-    LCandidato := CriarEnvelopeTruncado(LPrevia);
-    if TEncoding.UTF8.GetByteCount(LCandidato) <= ALimiteBytes then
+    LIndiceCentral := LIndiceInferior + ((LIndiceSuperior - LIndiceInferior) div 2);
+    LPrefixoJSON := PrefixoUnicodeSeguro(AJSON, LIndiceCentral);
+    LJSONCandidato := CriarEnvelopeTruncado(LPrefixoJSON);
+    if TEncoding.UTF8.GetByteCount(LJSONCandidato) <= ALimiteBytes then
     begin
-      LMelhor := LCandidato;
-      LBaixo := LMeio + 1;
+      LMelhorJSON := LJSONCandidato;
+      LIndiceInferior := LIndiceCentral + 1;
     end
     else
-      LAlto := LMeio - 1;
+      LIndiceSuperior := LIndiceCentral - 1;
   end;
-  Result := LMelhor;
+  Result := LMelhorJSON;
 end;
 
 class function TSanitizadorJSON.NormalizarNome(const ANome: string): string;
 var
   I: Integer;
-  LAnterior: Char;
-  LAtual: Char;
-  LTexto: string;
+  LCaractereAnterior: Char;
+  LCaractereAtual: Char;
+  LNomeNormalizado: string;
 begin
-  LTexto := Trim(ANome);
+  LNomeNormalizado := Trim(ANome);
   Result := '';
-  for I := 1 to Length(LTexto) do
+  for I := 1 to Length(LNomeNormalizado) do
   begin
-    LAtual := LTexto[I];
+    LCaractereAtual := LNomeNormalizado[I];
     if I > 1 then
     begin
-      LAnterior := LTexto[I - 1];
-      if (LAtual >= 'A') and (LAtual <= 'Z') and
-        (not ((LAnterior >= 'A') and (LAnterior <= 'Z')) or
-          ((I < Length(LTexto)) and (LTexto[I + 1] >= 'a') and
-            (LTexto[I + 1] <= 'z'))) and
-        (LAnterior <> '_') and (LAnterior <> '-') then
+      LCaractereAnterior := LNomeNormalizado[I - 1];
+      if (LCaractereAtual >= 'A') and (LCaractereAtual <= 'Z') and
+        (not ((LCaractereAnterior >= 'A') and (LCaractereAnterior <= 'Z')) or
+          ((I < Length(LNomeNormalizado)) and (LNomeNormalizado[I + 1] >= 'a') and
+            (LNomeNormalizado[I + 1] <= 'z'))) and
+        (LCaractereAnterior <> '_') and (LCaractereAnterior <> '-') then
         Result := Result + '_';
     end;
-    Result := Result + LowerCase(LAtual);
+    Result := Result + LowerCase(LCaractereAtual);
   end;
   Result := StringReplace(Result, '-', '_', [rfReplaceAll]);
 end;
@@ -263,9 +263,9 @@ class function TSanitizadorJSON.Sanitizar(const AJSON: string;
   AIncluirConteudoConversa: Boolean; ALimiteBytes: Integer;
   out ATruncado: Boolean): string;
 var
-  LJSON: TJSONValue;
-  LSanitizado: TJSONValue;
-  LTextoSanitizado: string;
+  LValorJSON: TJSONValue;
+  LValorJSONSanitizado: TJSONValue;
+  LJSONSanitizado: string;
 begin
   ATruncado := False;
   if ALimiteBytes < CLimiteJSONLogMinimoBytes then
@@ -280,22 +280,22 @@ begin
     Exit(CriarEnvelopeRemovido(CJSONExcessivoRemovido));
   end;
 
-  LJSON := TJSONObject.ParseJSONValue(AJSON);
-  if LJSON = nil then
+  LValorJSON := TJSONObject.ParseJSONValue(AJSON);
+  if LValorJSON = nil then
     Exit(LimitarJSON(CriarEnvelopeRemovido(CJSONInvalidoRemovido),
       ALimiteBytes, ATruncado));
   try
-    LSanitizado := SanitizarValor(LJSON, '', AIncluirConteudoConversa,
+    LValorJSONSanitizado := SanitizarValor(LValorJSON, '', AIncluirConteudoConversa,
       0, False);
     try
-      LTextoSanitizado := LSanitizado.ToJSON;
+      LJSONSanitizado := LValorJSONSanitizado.ToJSON;
     finally
-      LSanitizado.Free;
+      LValorJSONSanitizado.Free;
     end;
   finally
-    LJSON.Free;
+    LValorJSON.Free;
   end;
-  Result := LimitarJSON(LTextoSanitizado, ALimiteBytes, ATruncado);
+  Result := LimitarJSON(LJSONSanitizado, ALimiteBytes, ATruncado);
 end;
 
 end.

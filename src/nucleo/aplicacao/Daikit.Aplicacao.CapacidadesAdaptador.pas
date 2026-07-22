@@ -2,21 +2,29 @@ unit Daikit.Aplicacao.CapacidadesAdaptador;
 
 interface
 
+{$SCOPEDENUMS ON}
+
 uses
   Daikit.Aplicacao.Interfaces;
 
 type
+  TCapacidadeAdaptadorIA = (
+    TextoSincrono,
+    FluxoContinuo,
+    Ferramentas,
+    ImagemEntrada,
+    SaidaEstruturada
+  );
+
+  TConjuntoCapacidadesAdaptadorIA = set of TCapacidadeAdaptadorIA;
+
   TCapacidadesAdaptadorIA = class(TInterfacedObject,
     ICapacidadesAdaptadorIA)
   private
-    FTextoSincrono: Boolean;
-    FFluxoContinuo: Boolean;
-    FFerramentas: Boolean;
-    FImagemEntrada: Boolean;
-    FSaidaEstruturada: Boolean;
+    FCapacidadesAdaptador: TConjuntoCapacidadesAdaptadorIA;
   public
-    constructor Create(ATextoSincrono, AFluxoContinuo, AFerramentas,
-      AImagemEntrada, ASaidaEstruturada: Boolean);
+    constructor Create(
+      ACapacidadesAdaptador: TConjuntoCapacidadesAdaptadorIA);
     class function SomenteTextoSincrono: ICapacidadesAdaptadorIA; static;
     function SuportaTextoSincrono: Boolean;
     function SuportaFluxoContinuo: Boolean;
@@ -27,46 +35,43 @@ type
 
 implementation
 
-constructor TCapacidadesAdaptadorIA.Create(ATextoSincrono, AFluxoContinuo,
-  AFerramentas, AImagemEntrada, ASaidaEstruturada: Boolean);
+constructor TCapacidadesAdaptadorIA.Create(
+  ACapacidadesAdaptador: TConjuntoCapacidadesAdaptadorIA);
 begin
   inherited Create;
-  FTextoSincrono := ATextoSincrono;
-  FFluxoContinuo := AFluxoContinuo;
-  FFerramentas := AFerramentas;
-  FImagemEntrada := AImagemEntrada;
-  FSaidaEstruturada := ASaidaEstruturada;
+  FCapacidadesAdaptador := ACapacidadesAdaptador;
 end;
 
 class function TCapacidadesAdaptadorIA.SomenteTextoSincrono:
   ICapacidadesAdaptadorIA;
 begin
-  Result := TCapacidadesAdaptadorIA.Create(True, False, False, False, False);
+  Result := TCapacidadesAdaptadorIA.Create([
+    TCapacidadeAdaptadorIA.TextoSincrono]);
 end;
 
 function TCapacidadesAdaptadorIA.SuportaFerramentas: Boolean;
 begin
-  Result := FFerramentas;
+  Result := TCapacidadeAdaptadorIA.Ferramentas in FCapacidadesAdaptador;
 end;
 
 function TCapacidadesAdaptadorIA.SuportaFluxoContinuo: Boolean;
 begin
-  Result := FFluxoContinuo;
+  Result := TCapacidadeAdaptadorIA.FluxoContinuo in FCapacidadesAdaptador;
 end;
 
 function TCapacidadesAdaptadorIA.SuportaImagemEntrada: Boolean;
 begin
-  Result := FImagemEntrada;
+  Result := TCapacidadeAdaptadorIA.ImagemEntrada in FCapacidadesAdaptador;
 end;
 
 function TCapacidadesAdaptadorIA.SuportaSaidaEstruturada: Boolean;
 begin
-  Result := FSaidaEstruturada;
+  Result := TCapacidadeAdaptadorIA.SaidaEstruturada in FCapacidadesAdaptador;
 end;
 
 function TCapacidadesAdaptadorIA.SuportaTextoSincrono: Boolean;
 begin
-  Result := FTextoSincrono;
+  Result := TCapacidadeAdaptadorIA.TextoSincrono in FCapacidadesAdaptador;
 end;
 
 end.

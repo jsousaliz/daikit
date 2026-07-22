@@ -26,7 +26,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   strict private
-    FServico: TServicoInstalacaoDaikit;
+    FServicoInstalacaoDaikit: TServicoInstalacaoDaikit;
     procedure AtualizarTela;
     procedure RegistrarLog(const ATexto: string);
   end;
@@ -47,7 +47,7 @@ procedure TFormInstalador.AtualizarTela;
 var
   LEstado: TEstadoInstalacaoDaikit;
 begin
-  LEstado := FServico.ObterEstado;
+  LEstado := FServicoInstalacaoDaikit.ObterEstado;
   LabelDestino.Caption := 'Destino das BPLs: ' + LEstado.DiretorioBPL;
   LabelEstado.Caption := LEstado.Descricao;
   ButtonInstalar.Enabled := LEstado.DelphiInstalado and
@@ -62,7 +62,7 @@ begin
     mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
     Exit;
   try
-    FServico.Desinstalar;
+    FServicoInstalacaoDaikit.Desinstalar;
     RegistrarLog('Desinstalacao concluida.');
     MessageDlg('Daikit removido. Abra novamente o Delphi.', mtInformation,
       [mbOK], 0);
@@ -79,7 +79,7 @@ end;
 procedure TFormInstalador.ButtonInstalarClick(Sender: TObject);
 begin
   try
-    FServico.Instalar;
+    FServicoInstalacaoDaikit.Instalar;
     RegistrarLog('Instalacao Win32 e Win64 concluida.');
     MessageDlg('Daikit instalado. Abra o Delphi e procure a pagina Daikit.',
       mtInformation, [mbOK], 0);
@@ -95,14 +95,14 @@ end;
 
 procedure TFormInstalador.FormCreate(Sender: TObject);
 begin
-  FServico := TServicoInstalacaoDaikit.Create;
+  FServicoInstalacaoDaikit := TServicoInstalacaoDaikit.Create;
   RegistrarLog('Instalador autocontido iniciado.');
   AtualizarTela;
 end;
 
 procedure TFormInstalador.FormDestroy(Sender: TObject);
 begin
-  FServico.Free;
+  FServicoInstalacaoDaikit.Free;
 end;
 
 procedure TFormInstalador.RegistrarLog(const ATexto: string);

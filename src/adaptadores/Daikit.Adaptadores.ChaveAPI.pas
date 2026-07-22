@@ -16,7 +16,7 @@ type
 
   TFonteChaveAPIAmbiente = class(TInterfacedObject, IFonteChaveAPI)
   private
-    FNomeVariavel: string;
+    FNomeVariavelAmbiente: string;
   public
     constructor Create(const ANomeVariavel: string);
     function ObterChaveAPI: string;
@@ -44,12 +44,12 @@ begin
   if Trim(ANomeVariavel) = '' then
     raise EArgumentException.Create(
       'O nome da variavel de ambiente da chave da API deve ser informado.');
-  FNomeVariavel := ANomeVariavel;
+  FNomeVariavelAmbiente := ANomeVariavel;
 end;
 
 function TFonteChaveAPIAmbiente.ObterChaveAPI: string;
 begin
-  Result := GetEnvironmentVariable(FNomeVariavel);
+  Result := GetEnvironmentVariable(FNomeVariavelAmbiente);
 end;
 
 end.

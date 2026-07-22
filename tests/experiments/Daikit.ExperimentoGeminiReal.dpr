@@ -21,6 +21,8 @@ uses
   Daikit.Infraestrutura.JSON.Constantes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Constantes.pas',
   Daikit.Infraestrutura.JSON.Excecoes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Excecoes.pas',
   Daikit.Infraestrutura.JSON.Serializador in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Serializador.pas',
+  Daikit.Adaptadores.Interfaces in '..\..\src\adaptadores\Daikit.Adaptadores.Interfaces.pas',
+  Daikit.Adaptadores.ChaveAPI in '..\..\src\adaptadores\Daikit.Adaptadores.ChaveAPI.pas',
   Daikit.Adaptadores.Gemini.Constantes in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Constantes.pas',
   Daikit.Adaptadores.Gemini.Excecoes in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Excecoes.pas',
   Daikit.Adaptadores.Gemini.Contratos in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Contratos.pas',
@@ -62,10 +64,14 @@ end;
 
 var
   LModelo: string;
-  LAdaptador: IAdaptadorIA;
-  LResposta: IRespostaChatIA;
-  LPrimeiraResposta: IRespostaChatIA;
-  LArmazenamento: IArmazenamentoContextoGemini;
+  LTransporteHTTP: ITransporteHTTP;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LConfiguracaoGemini: IConfiguracaoGemini;
+  LMapeadorGemini: IMapeadorGemini;
+  LAdaptadorGemini: IAdaptadorIA;
+  LRespostaChat: IRespostaChatIA;
+  LPrimeiraRespostaChat: IRespostaChatIA;
+  LArmazenamentoContextoGemini: IArmazenamentoContextoGemini;
 begin
   ReportMemoryLeaksOnShutdown := True;
   if GetEnvironmentVariable(CVariavelExecutar) <> CValorExecutar then
@@ -84,17 +90,22 @@ begin
   if LModelo = '' then
     LModelo := CModeloGeminiPadrao;
   try
-    LArmazenamento := TArmazenamentoContextoGemini.Create;
-    LAdaptador := TAdaptadorGemini.Create(TTransporteHTTPClient.Create,
-      TFonteChaveGeminiAmbiente.Create, TConfiguracaoGemini.Create,
-      TMapeadorGemini.Create(LArmazenamento));
-    LPrimeiraResposta := LAdaptador.Concluir(CriarRequisicao(LModelo));
-    Writeln('SUCESSO TURNO 1: id=', LPrimeiraResposta.Id, '; resposta=',
-      LPrimeiraResposta.Mensagem.Texto);
-    LResposta := LAdaptador.Concluir(
-      CriarSegundaRequisicao(LModelo, LPrimeiraResposta));
-    Writeln('SUCESSO TURNO 2: id=', LResposta.Id, '; resposta=',
-      LResposta.Mensagem.Texto);
+    LArmazenamentoContextoGemini := TArmazenamentoContextoGemini.Create;
+    LTransporteHTTP := TTransporteHTTPClient.Create;
+    LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(
+      CVariavelAmbienteChaveGemini);
+    LConfiguracaoGemini := TConfiguracaoGemini.Create;
+    LMapeadorGemini := TMapeadorGemini.Create(
+      LArmazenamentoContextoGemini);
+    LAdaptadorGemini := TAdaptadorGemini.Create(LTransporteHTTP,
+      LFonteChaveAPI, LConfiguracaoGemini, LMapeadorGemini);
+    LPrimeiraRespostaChat := LAdaptadorGemini.Concluir(CriarRequisicao(LModelo));
+    Writeln('SUCESSO TURNO 1: id=', LPrimeiraRespostaChat.Id, '; resposta=',
+      LPrimeiraRespostaChat.Mensagem.Texto);
+    LRespostaChat := LAdaptadorGemini.Concluir(
+      CriarSegundaRequisicao(LModelo, LPrimeiraRespostaChat));
+    Writeln('SUCESSO TURNO 2: id=', LRespostaChat.Id, '; resposta=',
+      LRespostaChat.Mensagem.Texto);
   except
     on E: Exception do
     begin

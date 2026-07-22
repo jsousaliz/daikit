@@ -13,7 +13,7 @@ type
   TProvedorIA = class abstract(TComponent)
   private
     FChaveAPI: string;
-    FTransporte: ITransporteHTTP;
+    FTransporteHTTP: ITransporteHTTP;
     FEndpoint: string;
     FModeloPadrao: string;
     FVariavelAmbienteChaveAPI: string;
@@ -81,13 +81,13 @@ end;
 function TProvedorIA.CriarAdaptador(
   const AReceptorLog: IReceptorLogIA): IAdaptadorIA;
 var
-  LTransporte: ITransporteHTTP;
+  LTransporteHTTP: ITransporteHTTP;
 begin
-  LTransporte := ObterTransporte;
+  LTransporteHTTP := ObterTransporte;
   if AReceptorLog <> nil then
-    LTransporte := TTransporteHTTPComLog.Create(LTransporte, AReceptorLog,
+    LTransporteHTTP := TTransporteHTTPComLog.Create(LTransporteHTTP, AReceptorLog,
       ObterNomeProvedorLog);
-  Result := CriarAdaptadorComTransporte(LTransporte);
+  Result := CriarAdaptadorComTransporte(LTransporteHTTP);
 end;
 
 function TProvedorIA.ArmazenarEndpoint: Boolean;
@@ -115,7 +115,7 @@ end;
 procedure TProvedorIA.DefinirTransporte(
   const ATransporte: ITransporteHTTP);
 begin
-  FTransporte := ATransporte;
+  FTransporteHTTP := ATransporte;
 end;
 
 function TProvedorIA.ObterChaveAPI: string;
@@ -149,9 +149,9 @@ end;
 
 function TProvedorIA.ObterTransporte: ITransporteHTTP;
 begin
-  if FTransporte = nil then
-    FTransporte := TTransporteHTTPClient.Create;
-  Result := FTransporte;
+  if FTransporteHTTP = nil then
+    FTransporteHTTP := TTransporteHTTPClient.Create;
+  Result := FTransporteHTTP;
 end;
 
 function TProvedorIA.ObterVariavelAmbienteChaveAPI: string;

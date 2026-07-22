@@ -25,25 +25,25 @@ uses
 class function TSanitizadorHTTP.EhNomeSensivel(
   const ANome: string): Boolean;
 var
-  LNome: string;
+  LNomeCabecalhoNormalizado: string;
 begin
-  LNome := LowerCase(Trim(ANome));
-  Result := (LNome = 'authorization') or
-    (LNome = 'proxy-authorization') or
-    (LNome = 'x-api-key') or
-    (LNome = 'api-key') or
-    (LNome = 'api_key') or
-    (LNome = 'apikey') or
-    (LNome = 'access_token') or
-    (LNome = 'key') or
-    (LNome = 'chave') or
-    (LNome = 'chave_api') or
-    (LNome = 'cookie') or
-    (LNome = 'set-cookie') or
-    ContainsText(LNome, 'token') or
-    ContainsText(LNome, 'secret') or
-    ContainsText(LNome, 'senha') or
-    ContainsText(LNome, 'password');
+  LNomeCabecalhoNormalizado := LowerCase(Trim(ANome));
+  Result := (LNomeCabecalhoNormalizado = 'authorization') or
+    (LNomeCabecalhoNormalizado = 'proxy-authorization') or
+    (LNomeCabecalhoNormalizado = 'x-api-key') or
+    (LNomeCabecalhoNormalizado = 'api-key') or
+    (LNomeCabecalhoNormalizado = 'api_key') or
+    (LNomeCabecalhoNormalizado = 'apikey') or
+    (LNomeCabecalhoNormalizado = 'access_token') or
+    (LNomeCabecalhoNormalizado = 'key') or
+    (LNomeCabecalhoNormalizado = 'chave') or
+    (LNomeCabecalhoNormalizado = 'chave_api') or
+    (LNomeCabecalhoNormalizado = 'cookie') or
+    (LNomeCabecalhoNormalizado = 'set-cookie') or
+    ContainsText(LNomeCabecalhoNormalizado, 'token') or
+    ContainsText(LNomeCabecalhoNormalizado, 'secret') or
+    ContainsText(LNomeCabecalhoNormalizado, 'senha') or
+    ContainsText(LNomeCabecalhoNormalizado, 'password');
 end;
 
 class function TSanitizadorHTTP.SanitizarCabecalhos(
@@ -62,37 +62,37 @@ end;
 
 class function TSanitizadorHTTP.SanitizarURL(const AURL: string): string;
 var
-  LBase: string;
+  LURLBase: string;
   LPosicaoConsulta: Integer;
   LPosicaoFragmento: Integer;
   LPosicaoEsquema: Integer;
   LPosicaoArroba: Integer;
   LPosicaoBarra: Integer;
 begin
-  LBase := AURL;
-  LPosicaoFragmento := LBase.IndexOf('#');
+  LURLBase := AURL;
+  LPosicaoFragmento := LURLBase.IndexOf('#');
   if LPosicaoFragmento >= 0 then
-    LBase := LBase.Substring(CIndiceInicialTexto, LPosicaoFragmento);
+    LURLBase := LURLBase.Substring(CIndiceInicialTexto, LPosicaoFragmento);
 
-  LPosicaoConsulta := LBase.IndexOf('?');
+  LPosicaoConsulta := LURLBase.IndexOf('?');
   if LPosicaoConsulta >= 0 then
-    LBase := LBase.Substring(CIndiceInicialTexto, LPosicaoConsulta);
+    LURLBase := LURLBase.Substring(CIndiceInicialTexto, LPosicaoConsulta);
 
-  LPosicaoEsquema := LBase.IndexOf(CSeparadorEsquemaURL);
+  LPosicaoEsquema := LURLBase.IndexOf(CSeparadorEsquemaURL);
   if LPosicaoEsquema >= 0 then
   begin
-    LPosicaoArroba := LBase.IndexOf('@',
+    LPosicaoArroba := LURLBase.IndexOf('@',
       LPosicaoEsquema + Length(CSeparadorEsquemaURL));
-    LPosicaoBarra := LBase.IndexOf('/',
+    LPosicaoBarra := LURLBase.IndexOf('/',
       LPosicaoEsquema + Length(CSeparadorEsquemaURL));
     if (LPosicaoArroba >= 0) and
       ((LPosicaoBarra < 0) or (LPosicaoArroba < LPosicaoBarra)) then
-      LBase := LBase.Substring(CIndiceInicialTexto,
+      LURLBase := LURLBase.Substring(CIndiceInicialTexto,
         LPosicaoEsquema + Length(CSeparadorEsquemaURL)) +
-        CValorSensivelRemovido + LBase.Substring(LPosicaoArroba);
+        CValorSensivelRemovido + LURLBase.Substring(LPosicaoArroba);
   end;
 
-  Result := LBase;
+  Result := LURLBase;
 end;
 
 end.

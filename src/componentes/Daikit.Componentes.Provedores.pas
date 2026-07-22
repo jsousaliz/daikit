@@ -46,8 +46,8 @@ type
   TProvedorGemini = class(TProvedorIA)
   private
     FMaximoTokens: Integer;
-    FModoContexto: TModoContextoGemini;
-    FArmazenamentoContexto: IArmazenamentoContextoGemini;
+    FModoContextoGemini: TModoContextoGemini;
+    FArmazenamentoContextoGemini: IArmazenamentoContextoGemini;
   protected
     function ObterEndpointPadrao: string; override;
     function ObterModeloPadraoDoAdaptador: string; override;
@@ -61,8 +61,8 @@ type
   published
     property MaximoTokens: Integer read FMaximoTokens write FMaximoTokens
       default CMaximoTokensComponentePadrao;
-    property ModoContexto: TModoContextoGemini read FModoContexto
-      write FModoContexto default TModoContextoGemini.Local;
+    property ModoContexto: TModoContextoGemini read FModoContextoGemini
+      write FModoContextoGemini default TModoContextoGemini.Local;
   end;
 
 implementation
@@ -70,6 +70,7 @@ implementation
 uses
   Daikit.Adaptadores.Interfaces,
   Daikit.Adaptadores.ChaveAPI,
+  Daikit.Adaptadores.Configuracao,
   Daikit.Adaptadores.OpenAI.Constantes,
   Daikit.Adaptadores.OpenAI.Interfaces,
   Daikit.Adaptadores.OpenAI.Configuracao,
@@ -91,18 +92,26 @@ uses
 function TProvedorOpenAI.CriarAdaptadorComTransporte(
   const ATransporte: ITransporteHTTP): IAdaptadorIA;
 var
-  LFonte: IFonteChaveAPI;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LOpcoesConfiguracaoOpenAI: TOpcoesConfiguracaoAdaptadorIA;
+  LConfiguracaoOpenAI: IConfiguracaoOpenAI;
+  LMapeadorOpenAI: IMapeadorOpenAI;
 begin
   if TemChaveAPIEmMemoria then
-    LFonte := TFonteChaveAPIMemoria.Create(ObterChaveAPIEmMemoria)
+    LFonteChaveAPI := TFonteChaveAPIMemoria.Create(ObterChaveAPIEmMemoria)
   else
-    LFonte := TFonteChaveAPIAmbiente.Create(VariavelAmbienteChaveAPI);
+    LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(VariavelAmbienteChaveAPI);
   
-  Result := TAdaptadorOpenAI.Create(
-    ATransporte, LFonte,
-    TConfiguracaoOpenAI.Create(Endpoint, ModeloPadrao,
-      TimeoutConexaoMS, TimeoutRespostaMS, LimiteRespostaBytes),
-    TMapeadorOpenAI.Create);
+  LOpcoesConfiguracaoOpenAI := TOpcoesConfiguracaoAdaptadorIA.Padrao(
+    Endpoint, ModeloPadrao);
+  LOpcoesConfiguracaoOpenAI.TimeoutConexaoMS := TimeoutConexaoMS;
+  LOpcoesConfiguracaoOpenAI.TimeoutRespostaMS := TimeoutRespostaMS;
+  LOpcoesConfiguracaoOpenAI.LimiteRespostaBytes := LimiteRespostaBytes;
+  LConfiguracaoOpenAI := TConfiguracaoOpenAI.Create(
+    LOpcoesConfiguracaoOpenAI);
+  LMapeadorOpenAI := TMapeadorOpenAI.Create;
+  Result := TAdaptadorOpenAI.Create(ATransporte, LFonteChaveAPI,
+    LConfiguracaoOpenAI, LMapeadorOpenAI);
 end;
 
 function TProvedorOpenAI.ObterNomeProvedorLog: string;
@@ -147,19 +156,30 @@ end;
 function TProvedorAnthropic.CriarAdaptadorComTransporte(
   const ATransporte: ITransporteHTTP): IAdaptadorIA;
 var
-  LFonte: IFonteChaveAPI;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LOpcoesConfiguracaoAnthropic: TOpcoesConfiguracaoAnthropic;
+  LConfiguracaoAnthropic: IConfiguracaoAnthropic;
+  LMapeadorAnthropic: IMapeadorAnthropic;
 begin
   if TemChaveAPIEmMemoria then
-    LFonte := TFonteChaveAPIMemoria.Create(ObterChaveAPIEmMemoria)
+    LFonteChaveAPI := TFonteChaveAPIMemoria.Create(ObterChaveAPIEmMemoria)
   else
-    LFonte := TFonteChaveAPIAmbiente.Create(VariavelAmbienteChaveAPI);
+    LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(VariavelAmbienteChaveAPI);
 
-  Result := TAdaptadorAnthropic.Create(
-    ATransporte, LFonte,
-    TConfiguracaoAnthropic.Create(Endpoint, ModeloPadrao,
-      ObterVersaoAPI, FMaximoTokens, TimeoutConexaoMS,
-      TimeoutRespostaMS, LimiteRespostaBytes),
-    TMapeadorAnthropic.Create);
+  LOpcoesConfiguracaoAnthropic := TOpcoesConfiguracaoAnthropic.Padrao;
+  LOpcoesConfiguracaoAnthropic.Comum.Endpoint := Endpoint;
+  LOpcoesConfiguracaoAnthropic.Comum.ModeloPadrao := ModeloPadrao;
+  LOpcoesConfiguracaoAnthropic.VersaoAPI := ObterVersaoAPI;
+  LOpcoesConfiguracaoAnthropic.MaximoTokens := FMaximoTokens;
+  LOpcoesConfiguracaoAnthropic.Comum.TimeoutConexaoMS := TimeoutConexaoMS;
+  LOpcoesConfiguracaoAnthropic.Comum.TimeoutRespostaMS := TimeoutRespostaMS;
+  LOpcoesConfiguracaoAnthropic.Comum.LimiteRespostaBytes :=
+    LimiteRespostaBytes;
+  LConfiguracaoAnthropic := TConfiguracaoAnthropic.Create(
+    LOpcoesConfiguracaoAnthropic);
+  LMapeadorAnthropic := TMapeadorAnthropic.Create;
+  Result := TAdaptadorAnthropic.Create(ATransporte, LFonteChaveAPI,
+    LConfiguracaoAnthropic, LMapeadorAnthropic);
 end;
 
 function TProvedorAnthropic.ObterNomeProvedorLog: string;
@@ -188,26 +208,37 @@ constructor TProvedorGemini.Create(AOwner: TComponent);
 begin
   inherited;
   FMaximoTokens := CMaximoTokensComponentePadrao;
-  FModoContexto := TModoContextoGemini.Local;
-  FArmazenamentoContexto := TArmazenamentoContextoGemini.Create;
+  FModoContextoGemini := TModoContextoGemini.Local;
+  FArmazenamentoContextoGemini := TArmazenamentoContextoGemini.Create;
 end;
 
 function TProvedorGemini.CriarAdaptadorComTransporte(
   const ATransporte: ITransporteHTTP): IAdaptadorIA;
 var
-  LFonte: IFonteChaveAPI;
+  LFonteChaveAPI: IFonteChaveAPI;
+  LOpcoesConfiguracaoGemini: TOpcoesConfiguracaoGemini;
+  LConfiguracaoGemini: IConfiguracaoGemini;
+  LMapeadorGemini: IMapeadorGemini;
 begin
   if TemChaveAPIEmMemoria then
-    LFonte := TFonteChaveAPIMemoria.Create(ObterChaveAPIEmMemoria)
+    LFonteChaveAPI := TFonteChaveAPIMemoria.Create(ObterChaveAPIEmMemoria)
   else
-    LFonte := TFonteChaveAPIAmbiente.Create(VariavelAmbienteChaveAPI);
+    LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(VariavelAmbienteChaveAPI);
 
-  Result := TAdaptadorGemini.Create(
-    ATransporte, LFonte,
-    TConfiguracaoGemini.Create(Endpoint, ModeloPadrao,
-      FMaximoTokens, TimeoutConexaoMS, TimeoutRespostaMS,
-      LimiteRespostaBytes, FModoContexto),
-    TMapeadorGemini.Create(FArmazenamentoContexto));
+  LOpcoesConfiguracaoGemini := TOpcoesConfiguracaoGemini.Padrao;
+  LOpcoesConfiguracaoGemini.Comum.Endpoint := Endpoint;
+  LOpcoesConfiguracaoGemini.Comum.ModeloPadrao := ModeloPadrao;
+  LOpcoesConfiguracaoGemini.MaximoTokens := FMaximoTokens;
+  LOpcoesConfiguracaoGemini.Comum.TimeoutConexaoMS := TimeoutConexaoMS;
+  LOpcoesConfiguracaoGemini.Comum.TimeoutRespostaMS := TimeoutRespostaMS;
+  LOpcoesConfiguracaoGemini.Comum.LimiteRespostaBytes :=
+    LimiteRespostaBytes;
+  LOpcoesConfiguracaoGemini.ModoContexto := FModoContextoGemini;
+  LConfiguracaoGemini := TConfiguracaoGemini.Create(
+    LOpcoesConfiguracaoGemini);
+  LMapeadorGemini := TMapeadorGemini.Create(FArmazenamentoContextoGemini);
+  Result := TAdaptadorGemini.Create(ATransporte, LFonteChaveAPI,
+    LConfiguracaoGemini, LMapeadorGemini);
 end;
 
 function TProvedorGemini.ObterNomeProvedorLog: string;
@@ -217,7 +248,7 @@ end;
 
 procedure TProvedorGemini.LimparContextoLocal;
 begin
-  FArmazenamentoContexto.Limpar;
+  FArmazenamentoContextoGemini.Limpar;
 end;
 
 function TProvedorGemini.ObterEndpointPadrao: string;

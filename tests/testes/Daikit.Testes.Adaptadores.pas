@@ -35,20 +35,20 @@ procedure TTestesAdaptadores.FonteAmbiente_DevePermitirNomeConfiguravel;
 const
   CVariavelInexistente = 'DAIKIT_TESTE_VARIAVEL_INEXISTENTE_98F1';
 var
-  LFonte: IFonteChaveAPI;
+  LFonteChaveAPI: IFonteChaveAPI;
 begin
-  LFonte := TFonteChaveAPIAmbiente.Create(CVariavelInexistente);
-  Assert.AreEqual('', LFonte.ObterChaveAPI);
+  LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(CVariavelInexistente);
+  Assert.AreEqual('', LFonteChaveAPI.ObterChaveAPI);
 end;
 
 procedure TTestesAdaptadores.FonteMemoria_DevePreservarChave;
 const
   CChave = 'chave-compartilhada-de-teste';
 var
-  LFonte: IFonteChaveAPI;
+  LFonteChaveAPI: IFonteChaveAPI;
 begin
-  LFonte := TFonteChaveAPIMemoria.Create(CChave);
-  Assert.AreEqual(CChave, LFonte.ObterChaveAPI);
+  LFonteChaveAPI := TFonteChaveAPIMemoria.Create(CChave);
+  Assert.AreEqual(CChave, LFonteChaveAPI.ObterChaveAPI);
 end;
 
 initialization
