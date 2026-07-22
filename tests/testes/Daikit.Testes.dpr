@@ -1,0 +1,110 @@
+program DaikitTestes;
+
+{$APPTYPE CONSOLE}
+{$STRONGLINKTYPES ON}
+
+uses
+  System.SysUtils,
+  DUnitX.TestFramework,
+  DUnitX.Loggers.Console,
+  Daikit.Testes.Constantes in 'Daikit.Testes.Constantes.pas',
+  Daikit.Testes.Mensagem in 'Daikit.Testes.Mensagem.pas',
+  Daikit.Testes.ArmazenamentoContexto in 'Daikit.Testes.ArmazenamentoContexto.pas',
+  Daikit.Testes.RequisicaoResposta in 'Daikit.Testes.RequisicaoResposta.pas',
+  Daikit.Testes.TokenCancelamento in 'Daikit.Testes.TokenCancelamento.pas',
+  Daikit.Testes.CapacidadesAdaptador in 'Daikit.Testes.CapacidadesAdaptador.pas',
+  Daikit.Testes.Adaptadores in 'Daikit.Testes.Adaptadores.pas',
+  Daikit.Testes.Log in 'Daikit.Testes.Log.pas',
+  Daikit.Testes.SanitizadorJSON in 'Daikit.Testes.SanitizadorJSON.pas',
+  Daikit.Testes.ServicoContexto in 'Daikit.Testes.ServicoContexto.pas',
+  Daikit.Testes.HTTP in 'Daikit.Testes.HTTP.pas',
+  Daikit.Testes.JSON in 'Daikit.Testes.JSON.pas',
+  Daikit.Testes.OpenAI in 'Daikit.Testes.OpenAI.pas',
+  Daikit.Testes.Anthropic in 'Daikit.Testes.Anthropic.pas',
+  Daikit.Testes.Gemini in 'Daikit.Testes.Gemini.pas',
+  Daikit.Testes.Componentes in 'Daikit.Testes.Componentes.pas',
+  Daikit.Testes.Fixtures.OpenAI in 'fixtures\Daikit.Testes.Fixtures.OpenAI.pas',
+  Daikit.Testes.Fixtures.Anthropic in 'fixtures\Daikit.Testes.Fixtures.Anthropic.pas',
+  Daikit.Testes.Fixtures.Gemini in 'fixtures\Daikit.Testes.Fixtures.Gemini.pas',
+  Daikit.Testes.AdaptadorFalso in 'mock\Daikit.Testes.AdaptadorFalso.pas',
+  Daikit.Testes.TransporteHTTPFalso in 'mock\Daikit.Testes.TransporteHTTPFalso.pas',
+  Daikit.Dominio.Interfaces in '..\..\src\nucleo\dominio\Daikit.Dominio.Interfaces.pas',
+  Daikit.Dominio.Excecoes in '..\..\src\nucleo\dominio\Daikit.Dominio.Excecoes.pas',
+  Daikit.Dominio.Mensagem in '..\..\src\nucleo\dominio\Daikit.Dominio.Mensagem.pas',
+  Daikit.Dominio.ArmazenamentoContexto in '..\..\src\nucleo\dominio\Daikit.Dominio.ArmazenamentoContexto.pas',
+  Daikit.Dominio.Contexto in '..\..\src\nucleo\dominio\Daikit.Dominio.Contexto.pas',
+  Daikit.Dominio.RequisicaoResposta in '..\..\src\nucleo\dominio\Daikit.Dominio.RequisicaoResposta.pas',
+  Daikit.Aplicacao.Interfaces in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.Interfaces.pas',
+  Daikit.Aplicacao.CapacidadesAdaptador in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.CapacidadesAdaptador.pas',
+  Daikit.Aplicacao.TokenCancelamento in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.TokenCancelamento.pas',
+  Daikit.Aplicacao.ServicoContexto in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.ServicoContexto.pas',
+  Daikit.Aplicacao.Log in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.Log.pas',
+  Daikit.Infraestrutura.HTTP.Constantes in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Constantes.pas',
+  Daikit.Infraestrutura.HTTP.Interfaces in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Interfaces.pas',
+  Daikit.Infraestrutura.HTTP.Excecoes in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Excecoes.pas',
+  Daikit.Infraestrutura.HTTP.Modelos in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Modelos.pas',
+  Daikit.Infraestrutura.HTTP.FluxoLimitado in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.FluxoLimitado.pas',
+  Daikit.Infraestrutura.HTTP.Sanitizador in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Sanitizador.pas',
+  Daikit.Infraestrutura.HTTP.Transporte in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Transporte.pas',
+  Daikit.Infraestrutura.HTTP.Log in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Log.pas',
+  Daikit.Infraestrutura.JSON.Constantes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Constantes.pas',
+  Daikit.Infraestrutura.JSON.Sanitizador in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Sanitizador.pas',
+  Daikit.Infraestrutura.JSON.Excecoes in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Excecoes.pas',
+  Daikit.Infraestrutura.JSON.Serializador in '..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Serializador.pas',
+  Daikit.Adaptadores.Interfaces in '..\..\src\adaptadores\Daikit.Adaptadores.Interfaces.pas',
+  Daikit.Adaptadores.ChaveAPI in '..\..\src\adaptadores\Daikit.Adaptadores.ChaveAPI.pas',
+  Daikit.Adaptadores.Configuracao in '..\..\src\adaptadores\Daikit.Adaptadores.Configuracao.pas',
+  Daikit.Adaptadores.OpenAI.Constantes in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Constantes.pas',
+  Daikit.Adaptadores.OpenAI.Excecoes in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Excecoes.pas',
+  Daikit.Adaptadores.OpenAI.Contratos in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Contratos.pas',
+  Daikit.Adaptadores.OpenAI.Interfaces in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Interfaces.pas',
+  Daikit.Adaptadores.OpenAI.Configuracao in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Configuracao.pas',
+  Daikit.Adaptadores.OpenAI.Mapeador in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Mapeador.pas',
+  Daikit.Adaptadores.OpenAI.Adaptador in '..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Adaptador.pas',
+  Daikit.Adaptadores.Anthropic.Constantes in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Constantes.pas',
+  Daikit.Adaptadores.Anthropic.Excecoes in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Excecoes.pas',
+  Daikit.Adaptadores.Anthropic.Contratos in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Contratos.pas',
+  Daikit.Adaptadores.Anthropic.Interfaces in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Interfaces.pas',
+  Daikit.Adaptadores.Anthropic.Configuracao in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Configuracao.pas',
+  Daikit.Adaptadores.Anthropic.Mapeador in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Mapeador.pas',
+  Daikit.Adaptadores.Anthropic.Adaptador in '..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Adaptador.pas',
+  Daikit.Adaptadores.Gemini.Constantes in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Constantes.pas',
+  Daikit.Adaptadores.Gemini.Excecoes in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Excecoes.pas',
+  Daikit.Adaptadores.Gemini.Contratos in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Contratos.pas',
+  Daikit.Adaptadores.Gemini.Interfaces in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Interfaces.pas',
+  Daikit.Adaptadores.Gemini.Configuracao in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Configuracao.pas',
+  Daikit.Adaptadores.Gemini.Armazenamento in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Armazenamento.pas',
+  Daikit.Adaptadores.Gemini.Mapeador in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Mapeador.pas',
+  Daikit.Adaptadores.Gemini.Adaptador in '..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Adaptador.pas',
+  Daikit.Componentes.Constantes in '..\..\src\componentes\Daikit.Componentes.Constantes.pas',
+  Daikit.Componentes.Excecoes in '..\..\src\componentes\Daikit.Componentes.Excecoes.pas',
+  Daikit.Componentes.Provedor in '..\..\src\componentes\Daikit.Componentes.Provedor.pas',
+  Daikit.Componentes.Provedores in '..\..\src\componentes\Daikit.Componentes.Provedores.pas',
+  Daikit.Componentes.Conversa in '..\..\src\componentes\Daikit.Componentes.Conversa.pas',
+  Daikit.Componentes.Chat in '..\..\src\componentes\Daikit.Componentes.Chat.pas',
+  Daikit.Testes.Instalador in 'Daikit.Testes.Instalador.pas',
+  Daikit.Instalador.Servico in '..\..\tools\instalador\Daikit.Instalador.Servico.pas';
+
+var
+  LExecutor: ITestRunner;
+  LResultados: IRunResults;
+  LRegistrador: ITestLogger;
+begin
+  ReportMemoryLeaksOnShutdown := True;
+  try
+    LExecutor := TDUnitX.CreateRunner;
+    LExecutor.UseRTTI := True;
+    LExecutor.FailsOnNoAsserts := True;
+    LRegistrador := TDUnitXConsoleLogger.Create(False);
+    LExecutor.AddLogger(LRegistrador);
+    LResultados := LExecutor.Execute;
+    if not LResultados.AllPassed then
+      ExitCode := CCodigoSaidaTestesComFalha;
+  except
+    on E: Exception do
+    begin
+      Writeln(E.ClassName, ': ', E.Message);
+      ExitCode := CCodigoSaidaErroInesperado;
+    end;
+  end;
+end.

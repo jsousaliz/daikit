@@ -1,0 +1,58 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{ADDC0827-CFE2-4297-A3B6-43CA41EC7A98}</ProjectGuid>
+    <MainSource>DaikitDesignD12.dpk</MainSource>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <ProjectVersion>20.0</ProjectVersion>
+    <FrameworkType>None</FrameworkType>
+    <AppType>Package</AppType>
+    <GenDll>true</GenDll>
+    <GenPackage>true</GenPackage>
+    <TargetedPlatforms>1</TargetedPlatforms>
+    <Base>true</Base>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+    <Base>true</Base>
+    <DCC_Namespace>System;Winapi;$(DCC_Namespace)</DCC_Namespace>
+    <DCC_UnitSearchPath>bin\Win32;..\..\src\design;..\..\src\componentes;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_DcuOutput>bin\Win32\dcu\design</DCC_DcuOutput>
+    <DCC_BplOutput>bin\Win32</DCC_BplOutput>
+    <DCC_DcpOutput>bin\Win32</DCC_DcpOutput>
+    <DCC_ForceExecute>false</DCC_ForceExecute>
+    <SanitizedProjectName>DaikitDesignD12</SanitizedProjectName>
+    <DCC_DependencyCheckOutputName>bin\Win32\DaikitDesignD12.bpl</DCC_DependencyCheckOutputName>
+  </PropertyGroup>
+  <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
+    <Base_Win32>true</Base_Win32>
+    <CfgParent>Base</CfgParent>
+    <Base>true</Base>
+    <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+    <DCC_Platform>x86</DCC_Platform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_Debug)'!=''">
+    <Cfg_Debug>true</Cfg_Debug>
+    <CfgParent>Base</CfgParent>
+    <Base>true</Base>
+    <DCC_LocalDebugSymbols>true</DCC_LocalDebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_Release)'!=''">
+    <Cfg_Release>true</Cfg_Release>
+    <CfgParent>Base</CfgParent>
+    <Base>true</Base>
+    <DCC_Optimization>true</DCC_Optimization>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)"><MainSource>MainSource</MainSource></DelphiCompile>
+    <BuildConfiguration Include="Base"><Key>Base</Key></BuildConfiguration>
+    <BuildConfiguration Include="Debug"><Key>Cfg_Debug</Key><CfgParent>Base</CfgParent></BuildConfiguration>
+    <BuildConfiguration Include="Release"><Key>Cfg_Release</Key><CfgParent>Base</CfgParent></BuildConfiguration>
+  </ItemGroup>
+  <Import Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType>Package</Borland.ProjectType>
+    <BorlandProject><Delphi.Personality><Source><Source Name="MainSource">DaikitDesignD12.dpk</Source></Source></Delphi.Personality><Platforms><Platform value="Win32">True</Platform></Platforms></BorlandProject>
+    <ProjectFileVersion>12</ProjectFileVersion>
+  </ProjectExtensions>
+</Project>
