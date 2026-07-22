@@ -1,8 +1,4 @@
-# Daikit
-
-<p align="center">
-  <img src="src/design/branding/Daikit.png" alt="Ícone do Daikit" width="160">
-</p>
+<h1><img src="src/design/branding/Daikit.png" alt="Ícone do Daikit" width="80" align="absmiddle"> Daikit</h1>
 
 Biblioteca didática de componentes Delphi para conversar com diferentes provedores de IA por uma API única. A evolução planejada inclui componentes para clientes e servidores MCP.
 
