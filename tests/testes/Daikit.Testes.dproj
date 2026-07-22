@@ -1,0 +1,144 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{69C7D746-C0C4-4DB1-8CF8-F2399AC37F34}</ProjectGuid>
+    <MainSource>Daikit.Testes.dpr</MainSource>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <ProjectVersion>20.0</ProjectVersion>
+    <FrameworkType>None</FrameworkType>
+    <AppType>Console</AppType>
+    <TargetedPlatforms>3</TargetedPlatforms>
+    <Base>true</Base>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+    <Base>true</Base>
+    <DCC_Namespace>System;Winapi;$(DCC_Namespace)</DCC_Namespace>
+    <DCC_UnitSearchPath>$(BDS)\source\DUnitX;..\..\src\nucleo\dominio;..\..\src\nucleo\aplicacao;..\..\src\infraestrutura\http;..\..\src\infraestrutura\json;..\..\src\adaptadores;..\..\src\adaptadores\openai;..\..\src\adaptadores\anthropic;..\..\src\adaptadores\gemini;..\..\src\componentes;.;mock;fixtures;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_DcuOutput>..\bin\$(Platform)\testes\dcu</DCC_DcuOutput>
+    <DCC_ExeOutput>..\bin\$(Platform)\testes</DCC_ExeOutput>
+    <DCC_Define>CI;$(DCC_Define)</DCC_Define>
+    <DCC_ForceExecute>false</DCC_ForceExecute>
+    <SanitizedProjectName>DaikitTestes</SanitizedProjectName>
+    <DCC_DependencyCheckOutputName>..\bin\$(Platform)\testes\Daikit.Testes.exe</DCC_DependencyCheckOutputName>
+  </PropertyGroup>
+  <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
+    <Base_Win32>true</Base_Win32>
+    <CfgParent>Base</CfgParent>
+    <Base>true</Base>
+    <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+    <DCC_Platform>x86</DCC_Platform>
+  </PropertyGroup>
+  <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
+    <Base_Win64>true</Base_Win64>
+    <CfgParent>Base</CfgParent>
+    <Base>true</Base>
+    <DCC_DCCCompiler>DCC64</DCC_DCCCompiler>
+    <DCC_Platform>x64</DCC_Platform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_Debug)'!=''">
+    <Cfg_Debug>true</Cfg_Debug>
+    <CfgParent>Base</CfgParent>
+    <Base>true</Base>
+    <DCC_LocalDebugSymbols>true</DCC_LocalDebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_Release)'!=''">
+    <Cfg_Release>true</Cfg_Release>
+    <CfgParent>Base</CfgParent>
+    <Base>true</Base>
+    <DCC_Optimization>true</DCC_Optimization>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="Daikit.Testes.Constantes.pas"/>
+    <DCCReference Include="..\..\src\nucleo\dominio\Daikit.Dominio.Constantes.pas"/>
+    <DCCReference Include="..\..\src\nucleo\aplicacao\Daikit.Aplicacao.Constantes.pas"/>
+    <DCCReference Include="..\..\src\nucleo\aplicacao\Daikit.Aplicacao.CapacidadesAdaptador.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Constantes.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Interfaces.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Excecoes.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Modelos.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.FluxoLimitado.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Sanitizador.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Transporte.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Constantes.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Excecoes.pas"/>
+    <DCCReference Include="..\..\src\infraestrutura\json\Daikit.Infraestrutura.JSON.Serializador.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Constantes.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Excecoes.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Contratos.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Interfaces.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Configuracao.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Mapeador.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\openai\Daikit.Adaptadores.OpenAI.Adaptador.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Constantes.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Excecoes.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Contratos.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Interfaces.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Configuracao.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Mapeador.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\anthropic\Daikit.Adaptadores.Anthropic.Adaptador.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Constantes.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Excecoes.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Contratos.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Interfaces.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Configuracao.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Armazenamento.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Mapeador.pas"/>
+    <DCCReference Include="..\..\src\adaptadores\gemini\Daikit.Adaptadores.Gemini.Adaptador.pas"/>
+    <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Constantes.pas"/>
+    <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Excecoes.pas"/>
+    <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Provedor.pas"/>
+    <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Provedores.pas"/>
+    <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Conversa.pas"/>
+    <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Chat.pas"/>
+    <DCCReference Include="Daikit.Testes.Mensagem.pas"/>
+    <DCCReference Include="Daikit.Testes.ArmazenamentoContexto.pas"/>
+    <DCCReference Include="Daikit.Testes.RequisicaoResposta.pas"/>
+    <DCCReference Include="Daikit.Testes.TokenCancelamento.pas"/>
+    <DCCReference Include="Daikit.Testes.CapacidadesAdaptador.pas"/>
+    <DCCReference Include="Daikit.Testes.ServicoContexto.pas"/>
+    <DCCReference Include="Daikit.Testes.HTTP.pas"/>
+    <DCCReference Include="Daikit.Testes.JSON.pas"/>
+    <DCCReference Include="Daikit.Testes.OpenAI.pas"/>
+    <DCCReference Include="Daikit.Testes.Anthropic.pas"/>
+    <DCCReference Include="Daikit.Testes.Gemini.pas"/>
+    <DCCReference Include="Daikit.Testes.Componentes.pas"/>
+    <DCCReference Include="Daikit.Testes.Instalador.pas"/>
+    <DCCReference Include="..\..\tools\instalador\Daikit.Instalador.Servico.pas"/>
+    <DCCReference Include="fixtures\Daikit.Testes.Fixtures.OpenAI.pas"/>
+    <DCCReference Include="fixtures\Daikit.Testes.Fixtures.Anthropic.pas"/>
+    <DCCReference Include="fixtures\Daikit.Testes.Fixtures.Gemini.pas"/>
+    <DCCReference Include="mock\Daikit.Testes.AdaptadorFalso.pas"/>
+    <DCCReference Include="mock\Daikit.Testes.TransporteHTTPFalso.pas"/>
+    <BuildConfiguration Include="Base">
+      <Key>Base</Key>
+    </BuildConfiguration>
+    <BuildConfiguration Include="Debug">
+      <Key>Cfg_Debug</Key>
+      <CfgParent>Base</CfgParent>
+    </BuildConfiguration>
+    <BuildConfiguration Include="Release">
+      <Key>Cfg_Release</Key>
+      <CfgParent>Base</CfgParent>
+    </BuildConfiguration>
+  </ItemGroup>
+  <Import Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType>Console</Borland.ProjectType>
+    <BorlandProject>
+      <Delphi.Personality>
+        <Source>
+          <Source Name="MainSource">Daikit.Testes.dpr</Source>
+        </Source>
+      </Delphi.Personality>
+      <Platforms>
+        <Platform value="Win32">True</Platform>
+        <Platform value="Win64">True</Platform>
+      </Platforms>
+    </BorlandProject>
+    <ProjectFileVersion>12</ProjectFileVersion>
+  </ProjectExtensions>
+</Project>

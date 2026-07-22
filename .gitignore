@@ -1,0 +1,38 @@
+# Saidas do Delphi
+*.dcu
+*.exe
+*.dll
+*.bpl
+*.dcp
+*.map
+*.rsm
+*.tds
+*.local
+*.identcache
+*.stat
+tests/testes/Daikit.Testes.res
+
+# Pastas de compilacao
+bin/
+Win32/
+Win64/
+Debug/
+Release/
+__history/
+
+# Arquivos locais da IDE
+*.dsk
+*.dst
+*.projdata
+*.tvsconfig
+
+# Segredos e configuracoes locais
+.env
+*.segredo.json
+
+# Planejamento local
+plan/
+# Payload gerado do instalador
+tools/instalador/payload/
+tools/instalador/Daikit.Instalador.Payload.res
+tools/instalador/Daikit.Instalador.res

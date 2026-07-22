@@ -1,0 +1,19 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{507E171F-B9F1-44CC-BE36-B9D6BD0F1EE6}</ProjectGuid>
+    <MainSource>Daikit.ExperimentoAnthropicReal.dpr</MainSource>
+    <SanitizedProjectName>DaikitExperimentoAnthropicReal</SanitizedProjectName>
+    <DCC_DependencyCheckOutputName>..\bin\$(Platform)\experiments\Daikit.ExperimentoAnthropicReal.exe</DCC_DependencyCheckOutputName>
+  </PropertyGroup>
+  <Import Project="Daikit.Experimentos.props"/>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)"><MainSource>MainSource</MainSource></DelphiCompile>
+  </ItemGroup>
+  <Import Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType>Console</Borland.ProjectType>
+    <BorlandProject><Delphi.Personality><Source><Source Name="MainSource">Daikit.ExperimentoAnthropicReal.dpr</Source></Source></Delphi.Personality><Platforms><Platform value="Win32">True</Platform><Platform value="Win64">True</Platform></Platforms></BorlandProject>
+    <ProjectFileVersion>12</ProjectFileVersion>
+  </ProjectExtensions>
+</Project>
