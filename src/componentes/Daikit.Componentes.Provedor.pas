@@ -15,6 +15,7 @@ type
     FChaveAPI: string;
     FTransporteHTTP: ITransporteHTTP;
     FEndpoint: string;
+    FEndpointModelos: string;
     FModeloPadrao: string;
     FVariavelAmbienteChaveAPI: string;
     FTimeoutConexaoMS: Integer;
@@ -23,13 +24,16 @@ type
     function ObterChaveAPI: string;
     procedure DefinirChaveAPI(const AValor: string);
     function ObterEndpoint: string;
+    function ObterEndpointModelos: string;
     function ObterModeloPadrao: string;
     function ObterVariavelAmbienteChaveAPI: string;
     function ArmazenarEndpoint: Boolean;
+    function ArmazenarEndpointModelos: Boolean;
     function ArmazenarModeloPadrao: Boolean;
     function ArmazenarVariavelAmbienteChaveAPI: Boolean;
   protected
     function ObterEndpointPadrao: string; virtual; abstract;
+    function ObterEndpointModelosPadrao: string; virtual; abstract;
     function ObterModeloPadraoDoAdaptador: string; virtual; abstract;
     function ObterVariavelAmbienteChaveAPIPadrao: string;
       virtual; abstract;
@@ -50,6 +54,8 @@ type
       stored False;
     property Endpoint: string read ObterEndpoint write FEndpoint
       stored ArmazenarEndpoint;
+    property EndpointModelos: string read ObterEndpointModelos
+      write FEndpointModelos stored ArmazenarEndpointModelos;
     property ModeloPadrao: string read ObterModeloPadrao write FModeloPadrao
       stored ArmazenarModeloPadrao;
     property VariavelAmbienteChaveAPI: string
@@ -95,6 +101,11 @@ begin
   Result := FEndpoint <> '';
 end;
 
+function TProvedorIA.ArmazenarEndpointModelos: Boolean;
+begin
+  Result := FEndpointModelos <> '';
+end;
+
 function TProvedorIA.ArmazenarModeloPadrao: Boolean;
 begin
   Result := FModeloPadrao <> '';
@@ -137,6 +148,14 @@ begin
     Result := ObterEndpointPadrao
   else
     Result := FEndpoint;
+end;
+
+function TProvedorIA.ObterEndpointModelos: string;
+begin
+  if FEndpointModelos = '' then
+    Result := ObterEndpointModelosPadrao
+  else
+    Result := FEndpointModelos;
 end;
 
 function TProvedorIA.ObterModeloPadrao: string;

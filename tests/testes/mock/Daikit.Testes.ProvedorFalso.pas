@@ -14,6 +14,7 @@ type
     FAdaptador: IAdaptadorIA;
   protected
     function ObterEndpointPadrao: string; override;
+    function ObterEndpointModelosPadrao: string; override;
     function ObterModeloPadraoDoAdaptador: string; override;
     function ObterVariavelAmbienteChaveAPIPadrao: string; override;
     function ObterNomeProvedorLog: string; override;
@@ -48,6 +49,11 @@ end;
 function TProvedorIAFalso.ObterEndpointPadrao: string;
 begin
   Result := 'https://api.falsa.test/v1';
+end;
+
+function TProvedorIAFalso.ObterEndpointModelosPadrao: string;
+begin
+  Result := 'https://api.falsa.test/v1/models';
 end;
 
 function TProvedorIAFalso.ObterModeloPadraoDoAdaptador: string;

@@ -14,6 +14,8 @@ type
       const AModeloPadrao: string;
       AMaximoTokens: Integer): TRequisicaoMensagensAnthropic;
     function MapearResposta(AResposta: TRespostaAnthropic): IRespostaChatIA;
+    function MapearModelos(
+      AResposta: TRespostaModelosAnthropic): TArray<IModeloIA>;
   end;
 
 implementation
@@ -23,6 +25,7 @@ uses
   System.Classes,
   System.Generics.Collections,
   Daikit.Dominio.Mensagem,
+  Daikit.Dominio.Modelo,
   Daikit.Dominio.RequisicaoResposta,
   Daikit.Adaptadores.Anthropic.Constantes,
   Daikit.Adaptadores.Anthropic.Excecoes;
@@ -82,6 +85,27 @@ begin
   finally
     LInstrucaoSistema.Free;
     LMensagensEntradaAnthropic.Free;
+  end;
+end;
+
+function TMapeadorAnthropic.MapearModelos(
+  AResposta: TRespostaModelosAnthropic): TArray<IModeloIA>;
+var
+  LModeloAnthropic: TModeloAnthropic;
+  LModelos: TList<IModeloIA>;
+begin
+  if AResposta = nil then
+    raise EContratoAnthropic.Create(
+      'A resposta de modelos Anthropic deve ser informada.');
+  LModelos := TList<IModeloIA>.Create;
+  try
+    for LModeloAnthropic in AResposta.Modelos do
+      if (LModeloAnthropic <> nil) and (Trim(LModeloAnthropic.Id) <> '') then
+        LModelos.Add(TModeloIA.Create(LModeloAnthropic.Id,
+          LModeloAnthropic.NomeExibicao));
+    Result := LModelos.ToArray;
+  finally
+    LModelos.Free;
   end;
 end;
 

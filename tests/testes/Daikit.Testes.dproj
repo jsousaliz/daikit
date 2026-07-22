@@ -93,6 +93,9 @@
     <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Provedores.pas"/>
     <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Conversa.pas"/>
     <DCCReference Include="..\..\src\componentes\Daikit.Componentes.OperacaoChat.pas"/>
+    <DCCReference Include="..\..\src\componentes\Daikit.Componentes.OperacaoModelos.pas"/>
+    <DCCReference Include="..\..\src\nucleo\dominio\Daikit.Dominio.Modelo.pas"/>
+    <DCCReference Include="..\..\src\nucleo\aplicacao\Daikit.Aplicacao.ServicoModelos.pas"/>
     <DCCReference Include="..\..\src\componentes\Daikit.Componentes.Chat.pas"/>
     <DCCReference Include="Daikit.Testes.Mensagem.pas"/>
     <DCCReference Include="Daikit.Testes.ArmazenamentoContexto.pas"/>

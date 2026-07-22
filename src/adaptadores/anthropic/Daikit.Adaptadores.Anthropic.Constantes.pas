@@ -7,6 +7,7 @@ uses
 
 const
   CEndpointMensagensAnthropic = 'https://api.anthropic.com/v1/messages';
+  CEndpointModelosAnthropic = 'https://api.anthropic.com/v1/models';
   CModeloAnthropicPadrao = 'claude-sonnet-4-6';
   CVersaoAPIAnthropic = '2023-06-01';
   CVariavelAmbienteChaveAnthropic = 'ANTHROPIC_API_KEY';

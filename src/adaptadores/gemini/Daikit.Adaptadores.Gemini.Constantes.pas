@@ -8,6 +8,10 @@ uses
 const
   CEndpointInteracoesGemini =
     'https://generativelanguage.googleapis.com/v1/interactions';
+  CEndpointModelosGemini =
+    'https://generativelanguage.googleapis.com/v1beta/models';
+  CMetodoGeracaoConteudoGemini = 'generateContent';
+  CPrefixoNomeModeloGemini = 'models/';
   CModeloGeminiPadrao = 'gemini-3.5-flash';
   CVariavelAmbienteChaveGemini = 'GEMINI_API_KEY';
   CMaximoTokensSaidaPadraoGemini = 1024;

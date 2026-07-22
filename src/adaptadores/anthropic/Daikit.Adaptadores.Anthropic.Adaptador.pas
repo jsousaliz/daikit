@@ -25,6 +25,8 @@ type
     function ObterCapacidades: ICapacidadesAdaptadorIA;
     function Concluir(const ARequisicao: IRequisicaoChatIA;
       const ACancelamento: ITokenCancelamentoIA = nil): IRespostaChatIA;
+    function ListarModelos(
+      const ACancelamento: ITokenCancelamentoIA = nil): TArray<IModeloIA>;
   end;
 
 implementation
@@ -34,6 +36,7 @@ uses
   Daikit.Dominio.Excecoes,
   Daikit.Aplicacao.CapacidadesAdaptador,
   Daikit.Infraestrutura.HTTP.Modelos,
+  Daikit.Infraestrutura.HTTP.Sanitizador,
   Daikit.Infraestrutura.JSON.Constantes,
   Daikit.Infraestrutura.JSON.Excecoes,
   Daikit.Infraestrutura.JSON.Serializador,
@@ -41,13 +44,16 @@ uses
   Daikit.Adaptadores.Anthropic.Contratos,
   Daikit.Adaptadores.Anthropic.Excecoes;
 
-procedure LancarErroResposta(const AResposta: IRespostaHTTP);
+procedure LancarErroResposta(const AResposta: IRespostaHTTP;
+  const AChaveAPI: string);
 var
   LEnvelopeErroAnthropic: TEnvelopeErroAnthropic;
   LTipoErro: string;
   LIdRequisicao: string;
+  LMensagemAPI: string;
 begin
   LTipoErro := '';
+  LMensagemAPI := '';
   LIdRequisicao := TCabecalhoHTTP.ObterValor(AResposta.Cabecalhos,
     CCabecalhoIdRequisicaoAnthropic);
   LEnvelopeErroAnthropic := nil;
@@ -56,18 +62,25 @@ begin
       LEnvelopeErroAnthropic := TSerializadorJSON.Desserializar<TEnvelopeErroAnthropic>(
         AResposta.Corpo);
       if LEnvelopeErroAnthropic.Erro <> nil then
+      begin
         LTipoErro := LEnvelopeErroAnthropic.Erro.Tipo;
+        LMensagemAPI := LEnvelopeErroAnthropic.Erro.Mensagem;
+      end;
       if (LIdRequisicao = '') and (LEnvelopeErroAnthropic.IdRequisicao <> '') then
         LIdRequisicao := LEnvelopeErroAnthropic.IdRequisicao;
     except
       on E: ESerializacaoJSON do
+      begin
         LTipoErro := '';
+        LMensagemAPI := '';
+      end;
     end;
   finally
     LEnvelopeErroAnthropic.Free;
   end;
   raise ERespostaAnthropic.Create(AResposta.Status, LTipoErro,
-    LIdRequisicao);
+    LIdRequisicao, TSanitizadorHTTP.SanitizarMensagemErro(LMensagemAPI,
+      [AChaveAPI]));
 end;
 
 constructor TAdaptadorAnthropic.Create(const ATransporte: ITransporteHTTP;
@@ -90,6 +103,65 @@ end;
 function TAdaptadorAnthropic.ObterCapacidades: ICapacidadesAdaptadorIA;
 begin
   Result := FCapacidadesAdaptador;
+end;
+
+function TAdaptadorAnthropic.ListarModelos(
+  const ACancelamento: ITokenCancelamentoIA): TArray<IModeloIA>;
+var
+  LChaveAPI: string;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
+  LRespostaHTTP: IRespostaHTTP;
+  LRespostaModelosAnthropic: TRespostaModelosAnthropic;
+begin
+  if (ACancelamento <> nil) and ACancelamento.FoiCancelado then
+    raise EOperacaoCanceladaIA.Create(
+      'A listagem de modelos Anthropic foi cancelada.');
+  LChaveAPI := Trim(FFonteChaveAPI.ObterChaveAPI);
+  if LChaveAPI = '' then
+    raise EConfiguracaoAnthropic.Create(
+      'A chave da API Anthropic nao foi fornecida pela fonte configurada.');
+  SetLength(LCabecalhosHTTP, CQuantidadeCabecalhosAnthropic);
+  LCabecalhosHTTP[CIndiceChaveAnthropic] := TCabecalhoHTTP.Criar(
+    CCabecalhoChaveAnthropic, LChaveAPI);
+  LCabecalhosHTTP[CIndiceVersaoAnthropic] := TCabecalhoHTTP.Criar(
+    CCabecalhoVersaoAnthropic, FConfiguracaoAnthropic.VersaoAPI);
+  LCabecalhosHTTP[CIndiceTipoConteudoAnthropic] := TCabecalhoHTTP.Criar(
+    CCabecalhoTipoConteudoAnthropic, CTipoConteudoJSONAnthropic);
+  LCabecalhosHTTP[CIndiceAceiteAnthropic] := TCabecalhoHTTP.Criar(
+    CCabecalhoAceiteAnthropic, CTipoConteudoJSONAnthropic);
+  LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+  LOpcoesRequisicaoHTTP.Metodo := TMetodoHTTP.Get;
+  LOpcoesRequisicaoHTTP.URL := FConfiguracaoAnthropic.EndpointModelos;
+  LOpcoesRequisicaoHTTP.Cabecalhos := LCabecalhosHTTP;
+  LOpcoesRequisicaoHTTP.TimeoutConexaoMS :=
+    FConfiguracaoAnthropic.TimeoutConexaoMS;
+  LOpcoesRequisicaoHTTP.TimeoutRespostaMS :=
+    FConfiguracaoAnthropic.TimeoutRespostaMS;
+  LOpcoesRequisicaoHTTP.LimiteRespostaBytes :=
+    FConfiguracaoAnthropic.LimiteRespostaBytes;
+  LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
+  LRespostaHTTP := FTransporteHTTP.Enviar(LRequisicaoHTTP, ACancelamento);
+  if LRespostaHTTP = nil then
+    raise EContratoAnthropic.Create(
+      'O transporte HTTP nao retornou a lista de modelos Anthropic.');
+  if not LRespostaHTTP.FoiSucesso then
+    LancarErroResposta(LRespostaHTTP, LChaveAPI);
+  LRespostaModelosAnthropic := nil;
+  try
+    try
+      LRespostaModelosAnthropic := TSerializadorJSON.Desserializar<
+        TRespostaModelosAnthropic>(LRespostaHTTP.Corpo);
+    except
+      on E: ESerializacaoJSON do
+        raise EContratoAnthropic.Create(
+          'A API Anthropic retornou uma lista de modelos invalida.');
+    end;
+    Result := FMapeadorAnthropic.MapearModelos(LRespostaModelosAnthropic);
+  finally
+    LRespostaModelosAnthropic.Free;
+  end;
 end;
 
 function TAdaptadorAnthropic.Concluir(const ARequisicao: IRequisicaoChatIA;
@@ -146,7 +218,7 @@ begin
     raise EContratoAnthropic.Create(
       'O transporte HTTP nao retornou uma resposta para a Anthropic.');
   if not LRespostaHTTP.FoiSucesso then
-    LancarErroResposta(LRespostaHTTP);
+    LancarErroResposta(LRespostaHTTP, LChaveAPI);
   LContratoRespostaAnthropic := nil;
   try
     try

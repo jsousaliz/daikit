@@ -6,6 +6,27 @@ uses
   REST.Json.Types;
 
 type
+  TModeloAnthropic = class
+  private
+    [JSONName('id')] FId: string;
+    [JSONName('display_name')] FNomeExibicao: string;
+  public
+    property Id: string read FId write FId;
+    property NomeExibicao: string read FNomeExibicao write FNomeExibicao;
+  end;
+
+  TRespostaModelosAnthropic = class
+  private
+    [JSONName('data')] FModelos: TArray<TModeloAnthropic>;
+    [JSONName('has_more')] FTemMais: Boolean;
+    [JSONName('last_id')] FUltimoId: string;
+  public
+    destructor Destroy; override;
+    property Modelos: TArray<TModeloAnthropic> read FModelos write FModelos;
+    property TemMais: Boolean read FTemMais write FTemMais;
+    property UltimoId: string read FUltimoId write FUltimoId;
+  end;
+
   TMensagemEntradaAnthropic = class
   private
     [JSONName('role')] FPapel: string;
@@ -91,6 +112,16 @@ type
   end;
 
 implementation
+
+destructor TRespostaModelosAnthropic.Destroy;
+var
+  LModeloAnthropic: TModeloAnthropic;
+begin
+  for LModeloAnthropic in FModelos do
+    LModeloAnthropic.Free;
+  FModelos := nil;
+  inherited;
+end;
 
 destructor TRequisicaoMensagensAnthropic.Destroy;
 var

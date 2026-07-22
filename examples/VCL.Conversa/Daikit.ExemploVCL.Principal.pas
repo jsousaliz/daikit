@@ -1,4 +1,4 @@
-unit Daikit.ExemploVCL.Principal;
+﻿unit Daikit.ExemploVCL.Principal;
 
 interface
 
@@ -8,11 +8,14 @@ uses
   System.SysUtils,
   System.Classes,
   System.TypInfo,
+  Data.DB,
+  Datasnap.DBClient,
   Vcl.Graphics,
   Vcl.Controls,
   Vcl.Forms,
   Vcl.Dialogs,
   Vcl.StdCtrls,
+  Vcl.DBGrids,
   Daikit.Dominio.Interfaces,
   Daikit.Aplicacao.Interfaces,
   Daikit.Aplicacao.Log,
@@ -20,7 +23,7 @@ uses
   Daikit.Componentes.OperacaoChat,
   Daikit.Componentes.Conversa,
   Daikit.Componentes.Provedores,
-  Daikit.Componentes.Provedor;
+  Daikit.Componentes.Provedor, Vcl.Grids;
 
 type
   TFormPrincipal = class(TForm)
@@ -29,7 +32,7 @@ type
     EditMensagem: TEdit;
     BotaoEnviar: TButton;
     LabelLog: TLabel;
-    MemoLog: TMemo;
+    DBGridLog: TDBGrid;
     ProvedorOpenAI: TProvedorOpenAI;
     ProvedorAnthropic: TProvedorAnthropic;
     ProvedorGemini: TProvedorGemini;
@@ -39,8 +42,10 @@ type
     LabelUso: TLabel;
     ButtonLimpar: TButton;
     ComboModoConversa: TComboBox;
-    ComboNivelLog: TComboBox;
     BotaoLimparLog: TButton;
+    ButtonCarregarModelos: TButton;
+    ClientDataSetLog: TClientDataSet;
+    DataSourceLog: TDataSource;
     procedure FormCreate(Sender: TObject);
     procedure BotaoEnviarClick(Sender: TObject);
     procedure ComboProvedorChange(Sender: TObject);
@@ -55,15 +60,22 @@ type
     procedure ChatIAAoOcorrerErro(Sender: TObject;
       const AErro: IErroChatIA);
     procedure ChatIAAoConcluir(Sender: TObject);
+    procedure ChatIAAoReceberModelos(Sender: TObject;
+      const AModelos: TArray<IModeloIA>);
+    procedure ComboModeloChange(Sender: TObject);
+    procedure ButtonCarregarModelosClick(Sender: TObject);
   private
-    procedure AdicionarLinhaLog(const AMensagem: string;
-      const Args: array of const);
+    procedure CriarCamposLog;
+    procedure CampoMensagemLogGetText(Sender: TField; var Text: string;
+      DisplayText: Boolean);
+    procedure RemoverLogsExcedentes;
     procedure SelecionarProvedor;
-    procedure LimparChat;
+    procedure SelecionarModelo;
     procedure SelecionarModoConversa;
+    procedure PreencherModeloPadrao;
+    procedure LimparChat;
     procedure RegistrarMensagem(const AMensagem: string;
       const Args: array of const);
-    function NivelMinimoLog: TNivelLogIA;
   end;
 
 var
@@ -75,6 +87,16 @@ implementation
 
 const
   CLimiteLinhasLogExemplo = 300;
+  CCampoLogDataHoraUTC = 'DataHoraUTC';
+  CCampoLogTipo = 'Tipo';
+  CCampoLogNivel = 'Nivel';
+  CCampoLogProvedor = 'Provedor';
+  CCampoLogMensagem = 'Mensagem';
+  CCampoLogStatusHTTP = 'StatusHTTP';
+  CTamanhoCampoTipoLog = 20;
+  CTamanhoCampoNivelLog = 20;
+  CTamanhoCampoProvedorLog = 80;
+  CFormatoDataHoraLog = 'yyyy-mm-dd hh:nn:ss.zzz';
 
 procedure TFormPrincipal.BotaoEnviarClick(Sender: TObject);
 var
@@ -96,6 +118,11 @@ begin
   end;
 end;
 
+procedure TFormPrincipal.ButtonCarregarModelosClick(Sender: TObject);
+begin
+  ChatIA.CarregarModelos;
+end;
+
 procedure TFormPrincipal.ButtonLimparClick(Sender: TObject);
 begin
   LimparChat;
@@ -103,7 +130,14 @@ end;
 
 procedure TFormPrincipal.BotaoLimparLogClick(Sender: TObject);
 begin
-  MemoLog.Clear;
+  if ClientDataSetLog.Active and not ClientDataSetLog.IsEmpty then
+    ClientDataSetLog.EmptyDataSet;
+end;
+
+procedure TFormPrincipal.CampoMensagemLogGetText(Sender: TField;
+  var Text: string; DisplayText: Boolean);
+begin
+  Text := Sender.AsString;
 end;
 
 procedure TFormPrincipal.ChatIAAoConcluir(Sender: TObject);
@@ -132,15 +166,56 @@ begin
     RegistrarMensagem('Erro (%s): %s', [AErro.Classe, AErro.Mensagem]);
 end;
 
+procedure TFormPrincipal.ChatIAAoReceberModelos(Sender: TObject;
+  const AModelos: TArray<IModeloIA>);
+var
+  I: Integer;
+  LIndicePadrao: Integer;
+begin
+  LIndicePadrao := -1;
+  ComboModelo.Items.BeginUpdate;
+  try
+    ComboModelo.Clear;
+    for I := Low(AModelos) to High(AModelos) do
+    begin
+      ComboModelo.Items.Add(AModelos[I].Id);
+      if SameText(AModelos[I].Id, ChatIA.Provedor.ModeloPadrao) then
+        LIndicePadrao := I;
+    end;
+    if (LIndicePadrao < 0) and (Length(AModelos) > 0) then
+      LIndicePadrao := 0;
+    ComboModelo.ItemIndex := LIndicePadrao;
+  finally
+    ComboModelo.Items.EndUpdate;
+  end;
+  SelecionarModelo;
+end;
+
 procedure TFormPrincipal.ChatIAAoRegistrarLog(Sender: TObject;
   const AEvento: IEventoLogIA);
 begin
-  if (AEvento = nil) or (Ord(AEvento.Nivel) < Ord(NivelMinimoLog)) then
+  if (AEvento = nil) then
     Exit;
-  AdicionarLinhaLog('[%s] %s; HTTP=%d', [
-    GetEnumName(TypeInfo(TNivelLogIA), Ord(AEvento.Nivel)),
-    AEvento.Provedor, AEvento.StatusHTTP]);
-  AdicionarLinhaLog('%s', [AEvento.Mensagem]);
+  ClientDataSetLog.Append;
+  try
+    ClientDataSetLog.FieldByName(CCampoLogDataHoraUTC).AsDateTime :=
+      AEvento.DataHoraUTC;
+    ClientDataSetLog.FieldByName(CCampoLogTipo).AsString :=
+      GetEnumName(TypeInfo(TTipoEventoLogIA), Ord(AEvento.Tipo));
+    ClientDataSetLog.FieldByName(CCampoLogNivel).AsString :=
+      GetEnumName(TypeInfo(TNivelLogIA), Ord(AEvento.Nivel));
+    ClientDataSetLog.FieldByName(CCampoLogProvedor).AsString :=
+      AEvento.Provedor;
+    ClientDataSetLog.FieldByName(CCampoLogMensagem).AsString :=
+      AEvento.Mensagem;
+    ClientDataSetLog.FieldByName(CCampoLogStatusHTTP).AsInteger :=
+      AEvento.StatusHTTP;
+    ClientDataSetLog.Post;
+  except
+    ClientDataSetLog.Cancel;
+    raise;
+  end;
+  RemoverLogsExcedentes;
 end;
 
 procedure TFormPrincipal.ChatIAAoReceberResposta(Sender: TObject;
@@ -165,30 +240,55 @@ begin
   SelecionarModoConversa;
 end;
 
+procedure TFormPrincipal.ComboModeloChange(Sender: TObject);
+begin
+  SelecionarModelo;
+end;
+
 procedure TFormPrincipal.ComboProvedorChange(Sender: TObject);
 begin
   SelecionarProvedor;
+  PreencherModeloPadrao;
+  SelecionarModelo;
 end;
 
 procedure TFormPrincipal.FormCreate(Sender: TObject);
 begin
-  SelecionarProvedor;
+  CriarCamposLog;
+  ComboProvedorChange(ComboProvedor);
 end;
 
-procedure TFormPrincipal.AdicionarLinhaLog(const AMensagem: string;
-  const Args: array of const);
+procedure TFormPrincipal.CriarCamposLog;
 begin
-  MemoLog.Lines.Add(FormatDateTime('hh:nn:ss.zzz', Now) + '  ' + Format(AMensagem, Args));
-  while MemoLog.Lines.Count > CLimiteLinhasLogExemplo do
-    MemoLog.Lines.Delete(0);
+  ClientDataSetLog.Close;
+  ClientDataSetLog.FieldDefs.Clear;
+  ClientDataSetLog.FieldDefs.Add(CCampoLogDataHoraUTC, ftDateTime);
+  ClientDataSetLog.FieldDefs.Add(CCampoLogTipo, ftString, CTamanhoCampoTipoLog);
+  ClientDataSetLog.FieldDefs.Add(CCampoLogNivel, ftString,
+    CTamanhoCampoNivelLog);
+  ClientDataSetLog.FieldDefs.Add(CCampoLogProvedor, ftString,
+    CTamanhoCampoProvedorLog);
+  ClientDataSetLog.FieldDefs.Add(CCampoLogMensagem, ftMemo);
+  ClientDataSetLog.FieldDefs.Add(CCampoLogStatusHTTP, ftInteger);
+  ClientDataSetLog.CreateDataSet;
+  TDateTimeField(ClientDataSetLog.FieldByName(CCampoLogDataHoraUTC)).DisplayFormat :=
+    CFormatoDataHoraLog;
+  ClientDataSetLog.FieldByName(CCampoLogMensagem).OnGetText :=
+    CampoMensagemLogGetText;
 end;
 
-function TFormPrincipal.NivelMinimoLog: TNivelLogIA;
+procedure TFormPrincipal.RemoverLogsExcedentes;
 begin
-  case ComboNivelLog.ItemIndex of
-    2: Result := TNivelLogIA.Erro;
-  else
-    Result := TNivelLogIA.Informacao;
+  if ClientDataSetLog.RecordCount <= CLimiteLinhasLogExemplo then
+    Exit;
+  ClientDataSetLog.DisableControls;
+  try
+    ClientDataSetLog.First;
+    while ClientDataSetLog.RecordCount > CLimiteLinhasLogExemplo do
+      ClientDataSetLog.Delete;
+    ClientDataSetLog.Last;
+  finally
+    ClientDataSetLog.EnableControls;
   end;
 end;
 
@@ -227,5 +327,20 @@ begin
     ChatIA.Provedor := nil;
   end;
 end;
+
+procedure TFormPrincipal.PreencherModeloPadrao;
+begin
+  ComboModelo.Clear;
+  ComboModelo.Items.Add(ChatIA.Provedor.ModeloPadrao);
+  ComboModelo.ItemIndex := 0;
+end;
+
+procedure TFormPrincipal.SelecionarModelo;
+begin
+  ChatIA.Modelo := '';
+  if ComboModelo.ItemIndex >= 0 then
+    ChatIA.Modelo := ComboModelo.Text;
+end;
+
 
 end.

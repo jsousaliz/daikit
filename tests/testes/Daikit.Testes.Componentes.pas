@@ -30,6 +30,8 @@ type
     FThreadErro: Cardinal;
     FThreadConclusao: Cardinal;
     FThreadLog: Cardinal;
+    FModelos: TArray<IModeloIA>;
+    FThreadModelos: Cardinal;
   public
     procedure AoIniciar(Sender: TObject);
     procedure AoResponder(Sender: TObject;
@@ -38,6 +40,7 @@ type
     procedure AoConcluir(Sender: TObject);
     procedure AoConcluirDestruindo(Sender: TObject);
     procedure AoLog(Sender: TObject; const AEvento: IEventoLogIA);
+    procedure AoModelos(Sender: TObject; const AModelos: TArray<IModeloIA>);
   end;
 
   TObservadorConversaIA = class
@@ -79,6 +82,7 @@ type
     [Test] procedure Chat_DeveRecusarSegundoEnvioEnquantoExecuta;
     [Test] procedure Chat_DeveCancelarOperacaoEmAndamento;
     [Test] procedure Chat_DestruicaoDuranteEnvioNaoDevePublicarCallbacks;
+    [Test] procedure Chat_DeveCarregarModelosSemBloquearVCL;
     [Test] procedure Componentes_DevemPreservarReferenciasNoDFM;
   end;
 
@@ -164,6 +168,13 @@ begin
   FThreadResposta := GetCurrentThreadId;
   Assert.IsNotNull(AResposta);
   FUltimaResposta := AResposta;
+end;
+
+procedure TObservadorChatIA.AoModelos(Sender: TObject;
+  const AModelos: TArray<IModeloIA>);
+begin
+  FModelos := Copy(AModelos);
+  FThreadModelos := GetCurrentThreadId;
 end;
 
 procedure AguardarConclusao(AObservador: TObservadorChatIA;
@@ -498,6 +509,35 @@ begin
   end;
 end;
 
+procedure TTestesComponentes.Chat_DeveCarregarModelosSemBloquearVCL;
+var
+  LChat: TChatIA;
+  LAdaptadorFalso: IAdaptadorIA;
+  LObservador: TObservadorChatIA;
+  LThreadPrincipal: Cardinal;
+begin
+  LThreadPrincipal := GetCurrentThreadId;
+  LChat := TChatIA.Create(nil);
+  LObservador := TObservadorChatIA.Create;
+  try
+    LAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LChat.AoReceberModelos := LObservador.AoModelos;
+    LChat.AoConcluir := LObservador.AoConcluir;
+    LChat.CarregarModelos;
+    Assert.AreEqual(TEstadoChatIA.CarregandoModelos, LChat.Estado);
+    Assert.AreEqual(0, LObservador.FConclusoes);
+    AguardarConclusao(LObservador);
+    Assert.AreEqual(2, Integer(Length(LObservador.FModelos)));
+    Assert.AreEqual('modelo-falso-1', LObservador.FModelos[0].Id);
+    Assert.AreEqual(LThreadPrincipal, LObservador.FThreadModelos);
+    Assert.AreEqual(TEstadoChatIA.Ocioso, LChat.Estado);
+  finally
+    LObservador.Free;
+    LChat.Free;
+  end;
+end;
+
 procedure TTestesComponentes.Chat_DestruicaoDuranteEnvioNaoDevePublicarCallbacks;
 var
   LChat: TChatIA;
@@ -717,14 +757,20 @@ begin
   LProvedorGemini := TProvedorGemini.Create(nil);
   try
     Assert.AreEqual(CEndpointRespostasOpenAI, LProvedorOpenAI.Endpoint);
+    Assert.AreEqual(CEndpointModelosOpenAI,
+      LProvedorOpenAI.EndpointModelos);
     Assert.AreEqual(CModeloOpenAIRecomendado, LProvedorOpenAI.ModeloPadrao);
     Assert.AreEqual(CVariavelAmbienteChaveOpenAI,
       LProvedorOpenAI.VariavelAmbienteChaveAPI);
     Assert.AreEqual(CEndpointMensagensAnthropic, LProvedorAnthropic.Endpoint);
+    Assert.AreEqual(CEndpointModelosAnthropic,
+      LProvedorAnthropic.EndpointModelos);
     Assert.AreEqual(CModeloAnthropicPadrao, LProvedorAnthropic.ModeloPadrao);
     Assert.AreEqual(CVariavelAmbienteChaveAnthropic,
       LProvedorAnthropic.VariavelAmbienteChaveAPI);
     Assert.AreEqual(CEndpointInteracoesGemini, LProvedorGemini.Endpoint);
+    Assert.AreEqual(CEndpointModelosGemini,
+      LProvedorGemini.EndpointModelos);
     Assert.AreEqual(CModeloGeminiPadrao, LProvedorGemini.ModeloPadrao);
     Assert.AreEqual(CVariavelAmbienteChaveGemini,
       LProvedorGemini.VariavelAmbienteChaveAPI);
@@ -747,6 +793,7 @@ end;
 procedure TTestesComponentes.Provedores_DevemPersistirConfiguracoesComunsAlteradas;
 const
   CEndpointTeste = 'https://api.exemplo.test/v1';
+  CEndpointModelosTeste = 'https://api.exemplo.test/v1/models';
   CModeloTeste = 'modelo-personalizado';
   CVariavelTeste = 'DAIKIT_API_KEY_TESTE';
 var
@@ -758,6 +805,7 @@ begin
     LProvedor.Name := 'ProvedorOpenAI';
     LDFM := ComponenteComoTexto(LProvedor);
     Assert.AreEqual(0, Pos('Endpoint =', LDFM));
+    Assert.AreEqual(0, Pos('EndpointModelos =', LDFM));
     Assert.AreEqual(0, Pos('ModeloPadrao =', LDFM));
     Assert.AreEqual(0, Pos('VariavelAmbienteChaveAPI =', LDFM));
     Assert.AreEqual(0, Pos('TimeoutConexaoMS =', LDFM));
@@ -765,6 +813,7 @@ begin
     Assert.AreEqual(0, Pos('LimiteRespostaBytes =', LDFM));
 
     LProvedor.Endpoint := CEndpointTeste;
+    LProvedor.EndpointModelos := CEndpointModelosTeste;
     LProvedor.ModeloPadrao := CModeloTeste;
     LProvedor.VariavelAmbienteChaveAPI := CVariavelTeste;
     LProvedor.TimeoutConexaoMS := CTimeoutConexaoComponentePadraoMS + 1;
@@ -775,6 +824,8 @@ begin
     LDFM := ComponenteComoTexto(LProvedor);
     Assert.IsTrue(Pos('Endpoint =', LDFM) > 0);
     Assert.IsTrue(Pos(CEndpointTeste, LDFM) > 0);
+    Assert.IsTrue(Pos('EndpointModelos =', LDFM) > 0);
+    Assert.IsTrue(Pos(CEndpointModelosTeste, LDFM) > 0);
     Assert.IsTrue(Pos('ModeloPadrao =', LDFM) > 0);
     Assert.IsTrue(Pos(CModeloTeste, LDFM) > 0);
     Assert.IsTrue(Pos('VariavelAmbienteChaveAPI =', LDFM) > 0);

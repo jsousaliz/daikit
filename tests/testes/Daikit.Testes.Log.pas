@@ -143,12 +143,12 @@ var
 begin
   LDataHoraAntes := TTimeZone.Local.ToUniversalTime(Now);
   LEventoLog := TEventoLogIA.Create(TTipoEventoLogIA.Resposta,
-    TNivelLogIA.Informacao, CProvedorTeste, CJSONRespostaTeste,
+    TNivelLogIA.Resposta, CProvedorTeste, CJSONRespostaTeste,
     CStatusTeste);
   LDataHoraDepois := TTimeZone.Local.ToUniversalTime(Now);
 
   Assert.IsTrue(LEventoLog.Tipo = TTipoEventoLogIA.Resposta);
-  Assert.IsTrue(LEventoLog.Nivel = TNivelLogIA.Informacao);
+  Assert.IsTrue(LEventoLog.Nivel = TNivelLogIA.Resposta);
   Assert.AreEqual(CProvedorTeste, LEventoLog.Provedor);
   Assert.AreEqual(CJSONRespostaTeste, LEventoLog.Mensagem);
   Assert.IsTrue(LEventoLog.DataHoraUTC >= LDataHoraAntes);
@@ -192,8 +192,12 @@ begin
     LReceptorLogTeste.Quantidade);
   Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Tipo =
     TTipoEventoLogIA.Requisicao);
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Nivel =
+    TNivelLogIA.Requisicao);
   Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Tipo =
     TTipoEventoLogIA.Resposta);
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Nivel =
+    TNivelLogIA.Resposta);
   Assert.AreEqual(CJSONRequisicaoTeste,
     LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Mensagem);
   Assert.AreEqual(CJSONRespostaTeste,
@@ -224,7 +228,7 @@ begin
 
   Assert.IsTrue(LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP) = LRespostaHTTP);
   Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Nivel =
-    TNivelLogIA.Erro);
+    TNivelLogIA.RespostaErro);
   Assert.AreEqual(CStatusErroTeste,
     LReceptorLogTeste.Evento(CIndiceEventoResultado).StatusHTTP);
 end;

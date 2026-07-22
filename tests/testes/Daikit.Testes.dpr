@@ -32,6 +32,7 @@ uses
   Daikit.Dominio.Interfaces in '..\..\src\nucleo\dominio\Daikit.Dominio.Interfaces.pas',
   Daikit.Dominio.Excecoes in '..\..\src\nucleo\dominio\Daikit.Dominio.Excecoes.pas',
   Daikit.Dominio.Mensagem in '..\..\src\nucleo\dominio\Daikit.Dominio.Mensagem.pas',
+  Daikit.Dominio.Modelo in '..\..\src\nucleo\dominio\Daikit.Dominio.Modelo.pas',
   Daikit.Dominio.ArmazenamentoContexto in '..\..\src\nucleo\dominio\Daikit.Dominio.ArmazenamentoContexto.pas',
   Daikit.Dominio.Contexto in '..\..\src\nucleo\dominio\Daikit.Dominio.Contexto.pas',
   Daikit.Dominio.RequisicaoResposta in '..\..\src\nucleo\dominio\Daikit.Dominio.RequisicaoResposta.pas',
@@ -39,6 +40,7 @@ uses
   Daikit.Aplicacao.CapacidadesAdaptador in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.CapacidadesAdaptador.pas',
   Daikit.Aplicacao.TokenCancelamento in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.TokenCancelamento.pas',
   Daikit.Aplicacao.ServicoContexto in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.ServicoContexto.pas',
+  Daikit.Aplicacao.ServicoModelos in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.ServicoModelos.pas',
   Daikit.Aplicacao.Log in '..\..\src\nucleo\aplicacao\Daikit.Aplicacao.Log.pas',
   Daikit.Infraestrutura.HTTP.Constantes in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Constantes.pas',
   Daikit.Infraestrutura.HTTP.Interfaces in '..\..\src\infraestrutura\http\Daikit.Infraestrutura.HTTP.Interfaces.pas',
@@ -83,6 +85,7 @@ uses
   Daikit.Componentes.Provedores in '..\..\src\componentes\Daikit.Componentes.Provedores.pas',
   Daikit.Componentes.Conversa in '..\..\src\componentes\Daikit.Componentes.Conversa.pas',
   Daikit.Componentes.OperacaoChat in '..\..\src\componentes\Daikit.Componentes.OperacaoChat.pas',
+  Daikit.Componentes.OperacaoModelos in '..\..\src\componentes\Daikit.Componentes.OperacaoModelos.pas',
   Daikit.Componentes.Chat in '..\..\src\componentes\Daikit.Componentes.Chat.pas',
   Daikit.Testes.Instalador in 'Daikit.Testes.Instalador.pas',
   Daikit.Instalador.Servico in '..\..\tools\instalador\Daikit.Instalador.Servico.pas';

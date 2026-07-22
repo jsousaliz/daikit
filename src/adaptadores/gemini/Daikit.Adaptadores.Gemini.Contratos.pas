@@ -6,6 +6,31 @@ uses
   REST.Json.Types;
 
 type
+  TModeloGemini = class
+  private
+    [JSONName('name')] FNomeRecurso: string;
+    [JSONName('baseModelId')] FIdModeloBase: string;
+    [JSONName('displayName')] FNomeExibicao: string;
+    [JSONName('supportedGenerationMethods')]
+    FMetodosGeracaoSuportados: TArray<string>;
+  public
+    property NomeRecurso: string read FNomeRecurso write FNomeRecurso;
+    property IdModeloBase: string read FIdModeloBase write FIdModeloBase;
+    property NomeExibicao: string read FNomeExibicao write FNomeExibicao;
+    property MetodosGeracaoSuportados: TArray<string>
+      read FMetodosGeracaoSuportados write FMetodosGeracaoSuportados;
+  end;
+
+  TRespostaModelosGemini = class
+  private
+    [JSONName('models')] FModelos: TArray<TModeloGemini>;
+    [JSONName('nextPageToken')] FProximaPagina: string;
+  public
+    destructor Destroy; override;
+    property Modelos: TArray<TModeloGemini> read FModelos write FModelos;
+    property ProximaPagina: string read FProximaPagina write FProximaPagina;
+  end;
+
   TConteudoGemini = class
   private
     [JSONName('type')] FTipo: string;
@@ -117,6 +142,16 @@ type
   end;
 
 implementation
+
+destructor TRespostaModelosGemini.Destroy;
+var
+  LModeloGemini: TModeloGemini;
+begin
+  for LModeloGemini in FModelos do
+    LModeloGemini.Free;
+  FModelos := nil;
+  inherited;
+end;
 
 destructor TPassoGemini.Destroy;
 var

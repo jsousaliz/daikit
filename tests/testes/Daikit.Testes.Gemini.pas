@@ -17,8 +17,8 @@ type
     [Test] procedure Adaptador_DeveUsarModeloPadrao;
     [Test] procedure Adaptador_DeveMapearRespostaEUso;
     [Test] procedure Adaptador_DevePreservarMultiplosTextos;
-    [Test] procedure Adaptador_DeveMapearErroSemExporMensagem;
-    [Test] procedure Adaptador_DeveMapearErroEmListaSemExporMensagem;
+    [Test] procedure Adaptador_DeveMapearErroComMensagemSanitizada;
+    [Test] procedure Adaptador_DeveMapearErroEmListaComMensagemSanitizada;
     [Test] procedure Adaptador_DeveFalharSemChaveAntesDoTransporte;
     [Test] procedure Adaptador_DeveRespeitarCancelamento;
     [Test] procedure Adaptador_DeveInformarCapacidadesImplementadas;
@@ -30,6 +30,7 @@ type
     [Test] procedure Configuracao_DeveRejeitarModoRemotoAindaNaoImplementado;
     [Test] procedure Adaptador_DeveCriarCorrelacaoLocalQuandoRespostaNaoTemId;
     [Test] procedure Adaptador_DeveRejeitarPensamentoSemAssinatura;
+    [Test] procedure Adaptador_DeveListarModelosDeGeracaoDeConteudo;
   end;
 
 implementation
@@ -60,6 +61,16 @@ uses
   Daikit.Testes.TransporteHTTPFalso,
   Daikit.Testes.Fixtures.Gemini;
 
+const
+  CChaveGeminiTeste = 'chave-gemini-falsa';
+  CRespostaModelosGeminiTeste =
+    '{"models":[{"name":"models/gemini-3.5-flash",' +
+    '"baseModelId":"gemini-3.5-flash","displayName":"Gemini 3.5 Flash",' +
+    '"supportedGenerationMethods":["generateContent"]},' +
+    '{"name":"models/gemini-embedding","baseModelId":"gemini-embedding",' +
+    '"displayName":"Gemini Embedding",' +
+    '"supportedGenerationMethods":["embedContent"]}]}';
+
 function CriarRequisicao(const AModelo: string = 'modelo-explicito';
   APapel: TPapelMensagemIA = TPapelMensagemIA.Usuario): IRequisicaoChatIA;
 var
@@ -71,7 +82,7 @@ begin
 end;
 
 function CriarAdaptador(out ATransporte: TTransporteHTTPFalso;
-  const AChave: string = 'chave-gemini-falsa'): IAdaptadorIA;
+  const AChave: string = CChaveGeminiTeste): IAdaptadorIA;
 var
   LTransporteHTTPFalso: ITransporteHTTP;
   LFonteChaveAPI: IFonteChaveAPI;
@@ -116,6 +127,25 @@ begin
   for LCabecalhoHTTP in ARequisicao.Cabecalhos do
     if SameText(LCabecalhoHTTP.Nome, ANome) then
       Exit(LCabecalhoHTTP.Valor);
+end;
+
+procedure TTestesGemini.Adaptador_DeveListarModelosDeGeracaoDeConteudo;
+var
+  LAdaptador: IAdaptadorIA;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LModelos: TArray<IModeloIA>;
+begin
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
+    RespostaHTTP(200, CRespostaModelosGeminiTeste));
+  LModelos := LAdaptador.ListarModelos;
+  Assert.AreEqual(1, Integer(Length(LModelos)));
+  Assert.AreEqual('gemini-3.5-flash', LModelos[0].Id);
+  Assert.AreEqual('Gemini 3.5 Flash', LModelos[0].Nome);
+  Assert.AreEqual(CEndpointModelosGemini,
+    LTransporteHTTPFalso.UltimaRequisicao.URL);
+  Assert.IsTrue(LTransporteHTTPFalso.UltimaRequisicao.Metodo =
+    TMetodoHTTP.Get);
 end;
 
 procedure TTestesGemini.Configuracao_DeveExigirHTTPS;
@@ -224,7 +254,7 @@ begin
   Assert.IsFalse(LAdaptador.Capacidades.SuportaSaidaEstruturada);
 end;
 
-procedure TTestesGemini.Adaptador_DeveMapearErroEmListaSemExporMensagem;
+procedure TTestesGemini.Adaptador_DeveMapearErroEmListaComMensagemSanitizada;
 var
   LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
@@ -243,12 +273,17 @@ begin
       Assert.AreEqual(400, E.CodigoErro);
       Assert.AreEqual('INVALID_ARGUMENT', E.TipoErro);
       Assert.AreEqual('req_gemini_lista_123', E.IdRequisicao);
-      Assert.IsFalse(E.Message.Contains('conteudo-sensivel-gemini'));
+      Assert.IsTrue(E.MensagemAPI.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains(CValorSensivelRemovido));
+      Assert.IsFalse(E.Message.Contains(CChaveGeminiTeste));
+      Assert.IsFalse(E.Message.Contains(#13));
+      Assert.IsFalse(E.Message.Contains(#10));
     end;
   end;
   Assert.IsTrue(LCapturou);
 end;
-procedure TTestesGemini.Adaptador_DeveMapearErroSemExporMensagem;
+procedure TTestesGemini.Adaptador_DeveMapearErroComMensagemSanitizada;
 var
   LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
@@ -267,7 +302,12 @@ begin
       Assert.AreEqual(400, E.CodigoErro);
       Assert.AreEqual('INVALID_ARGUMENT', E.TipoErro);
       Assert.AreEqual('req_gemini_123', E.IdRequisicao);
-      Assert.IsFalse(E.Message.Contains('conteudo-sensivel-gemini'));
+      Assert.IsTrue(E.MensagemAPI.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains(CValorSensivelRemovido));
+      Assert.IsFalse(E.Message.Contains(CChaveGeminiTeste));
+      Assert.IsFalse(E.Message.Contains(#13));
+      Assert.IsFalse(E.Message.Contains(#10));
     end;
   end;
   Assert.IsTrue(LCapturou);

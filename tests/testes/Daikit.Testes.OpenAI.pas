@@ -13,13 +13,14 @@ type
     [Test] procedure Adaptador_DeveUsarModeloPadraoQuandoModeloVazio;
     [Test] procedure Adaptador_DeveMapearRespostaTextualEUso;
     [Test] procedure Adaptador_DevePreservarMultiplasPartesDeTexto;
-    [Test] procedure Adaptador_DeveMapearErroSemExporCorpo;
+    [Test] procedure Adaptador_DeveMapearErroComMensagemSanitizada;
     [Test] procedure Adaptador_DeveRejeitarJSONSucessoInvalidoSemExporCorpo;
     [Test] procedure Adaptador_DeveFalharSemChaveAntesDoTransporte;
     [Test] procedure Adaptador_DeveRespeitarCancelamentoAntesDoTransporte;
     [Test] procedure Mapeador_DeveRejeitarMensagemDeFerramenta;
     [Test] procedure Configuracao_DeveExigirEndpointHTTPS;
     [Test] procedure Adaptador_DeveInformarCapacidadesImplementadas;
+    [Test] procedure Adaptador_DeveListarSomenteModelosDeConversa;
   end;
 
 implementation
@@ -37,6 +38,7 @@ uses
   Daikit.Adaptadores.ChaveAPI,
   Daikit.Adaptadores.Configuracao,
   Daikit.Infraestrutura.HTTP.Interfaces,
+  Daikit.Infraestrutura.HTTP.Constantes,
   Daikit.Infraestrutura.HTTP.Modelos,
   Daikit.Adaptadores.OpenAI.Constantes,
   Daikit.Adaptadores.OpenAI.Excecoes,
@@ -46,6 +48,12 @@ uses
   Daikit.Adaptadores.OpenAI.Adaptador,
   Daikit.Testes.TransporteHTTPFalso,
   Daikit.Testes.Fixtures.OpenAI;
+
+const
+  CChaveOpenAITeste = 'sk-chave-falsa-de-teste';
+  CRespostaModelosOpenAITeste =
+    '{"data":[{"id":"gpt-5.6","owned_by":"openai"},' +
+    '{"id":"text-embedding-3-small","owned_by":"openai"}]}';
 
 function CriarRequisicao(const AModelo: string = 'modelo-explicito';
   APapel: TPapelMensagemIA = TPapelMensagemIA.Usuario): IRequisicaoChatIA;
@@ -58,7 +66,7 @@ begin
 end;
 
 function CriarAdaptador(out ATransporte: TTransporteHTTPFalso;
-  const AChave: string = 'sk-chave-falsa-de-teste'): IAdaptadorIA;
+  const AChave: string = CChaveOpenAITeste): IAdaptadorIA;
 var
   LTransporteHTTPFalso: ITransporteHTTP;
   LFonteChaveAPI: IFonteChaveAPI;
@@ -99,12 +107,31 @@ begin
       Exit(LCabecalhoHTTP.Valor);
 end;
 
+procedure TTestesOpenAI.Adaptador_DeveListarSomenteModelosDeConversa;
+var
+  LAdaptador: IAdaptadorIA;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LModelos: TArray<IModeloIA>;
+begin
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
+    RespostaHTTP(200, CRespostaModelosOpenAITeste));
+  LModelos := LAdaptador.ListarModelos;
+  Assert.AreEqual(1, Integer(Length(LModelos)));
+  Assert.AreEqual('gpt-5.6', LModelos[0].Id);
+  Assert.AreEqual(CEndpointModelosOpenAI,
+    LTransporteHTTPFalso.UltimaRequisicao.URL);
+  Assert.IsTrue(LTransporteHTTPFalso.UltimaRequisicao.Metodo =
+    TMetodoHTTP.Get);
+end;
+
 procedure TTestesOpenAI.Configuracao_DeveExigirEndpointHTTPS;
 var
   LOpcoesConfiguracaoOpenAI: TOpcoesConfiguracaoAdaptadorIA;
 begin
   LOpcoesConfiguracaoOpenAI := TOpcoesConfiguracaoAdaptadorIA.Padrao(
-    CEndpointRespostasOpenAI, CModeloOpenAIRecomendado);
+    CEndpointRespostasOpenAI, CEndpointModelosOpenAI,
+    CModeloOpenAIRecomendado);
   LOpcoesConfiguracaoOpenAI.Endpoint := 'http://api.exemplo.test';
   Assert.WillRaise(
     TTestLocalMethod(procedure
@@ -224,7 +251,7 @@ begin
   Assert.AreEqual('primeira segunda', LRespostaChat.Mensagem.Texto);
 end;
 
-procedure TTestesOpenAI.Adaptador_DeveMapearErroSemExporCorpo;
+procedure TTestesOpenAI.Adaptador_DeveMapearErroComMensagemSanitizada;
 const
   CIdRequisicao = 'req_teste_456';
 var
@@ -246,7 +273,12 @@ begin
       Assert.AreEqual('invalid_request_error', E.TipoErro);
       Assert.AreEqual('model_not_found', E.CodigoErro);
       Assert.AreEqual(CIdRequisicao, E.IdRequisicao);
-      Assert.IsFalse(E.Message.Contains('conteudo-sensivel-da-fixture'));
+      Assert.IsTrue(E.MensagemAPI.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains(CValorSensivelRemovido));
+      Assert.IsFalse(E.Message.Contains(CChaveOpenAITeste));
+      Assert.IsFalse(E.Message.Contains(#13));
+      Assert.IsFalse(E.Message.Contains(#10));
     end;
   end;
   Assert.IsTrue(LCapturou);

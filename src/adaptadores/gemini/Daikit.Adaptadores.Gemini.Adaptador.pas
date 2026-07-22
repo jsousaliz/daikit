@@ -25,6 +25,8 @@ type
     function ObterCapacidades: ICapacidadesAdaptadorIA;
     function Concluir(const ARequisicao: IRequisicaoChatIA;
       const ACancelamento: ITokenCancelamentoIA = nil): IRespostaChatIA;
+    function ListarModelos(
+      const ACancelamento: ITokenCancelamentoIA = nil): TArray<IModeloIA>;
   end;
 
 implementation
@@ -36,6 +38,7 @@ uses
   Daikit.Dominio.Excecoes,
   Daikit.Aplicacao.CapacidadesAdaptador,
   Daikit.Infraestrutura.HTTP.Modelos,
+  Daikit.Infraestrutura.HTTP.Sanitizador,
   Daikit.Infraestrutura.JSON.Constantes,
   Daikit.Infraestrutura.JSON.Excecoes,
   Daikit.Infraestrutura.JSON.Serializador,
@@ -70,16 +73,19 @@ begin
   end;
 end;
 
-procedure LancarErroResposta(const AResposta: IRespostaHTTP);
+procedure LancarErroResposta(const AResposta: IRespostaHTTP;
+  const AChaveAPI: string);
 var
   LEnvelopeErroGemini: TEnvelopeErroGemini;
   LJSONErro: string;
   LCodigoErro: Integer;
   LTipoErro: string;
   LIdRequisicao: string;
+  LMensagemAPI: string;
 begin
   LCodigoErro := 0;
   LTipoErro := '';
+  LMensagemAPI := '';
   LIdRequisicao := TCabecalhoHTTP.ObterValor(AResposta.Cabecalhos,
     CCabecalhoIdRequisicaoGemini);
   LEnvelopeErroGemini := nil;
@@ -93,19 +99,22 @@ begin
       begin
         LCodigoErro := LEnvelopeErroGemini.Erro.Codigo;
         LTipoErro := LEnvelopeErroGemini.Erro.Status;
+        LMensagemAPI := LEnvelopeErroGemini.Erro.Mensagem;
       end;
     except
       on E: ESerializacaoJSON do
       begin
         LCodigoErro := 0;
         LTipoErro := '';
+        LMensagemAPI := '';
       end;
     end;
   finally
     LEnvelopeErroGemini.Free;
   end;
   raise ERespostaGemini.Create(AResposta.Status, LCodigoErro, LTipoErro,
-    LIdRequisicao);
+    LIdRequisicao, TSanitizadorHTTP.SanitizarMensagemErro(LMensagemAPI,
+      [AChaveAPI]));
 end;
 
 constructor TAdaptadorGemini.Create(const ATransporte: ITransporteHTTP;
@@ -131,6 +140,63 @@ end;
 function TAdaptadorGemini.ObterCapacidades: ICapacidadesAdaptadorIA;
 begin
   Result := FCapacidadesAdaptador;
+end;
+
+function TAdaptadorGemini.ListarModelos(
+  const ACancelamento: ITokenCancelamentoIA): TArray<IModeloIA>;
+var
+  LChaveAPI: string;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
+  LRespostaHTTP: IRespostaHTTP;
+  LRespostaModelosGemini: TRespostaModelosGemini;
+begin
+  if (ACancelamento <> nil) and ACancelamento.FoiCancelado then
+    raise EOperacaoCanceladaIA.Create(
+      'A listagem de modelos Gemini foi cancelada.');
+  LChaveAPI := Trim(FFonteChaveAPI.ObterChaveAPI);
+  if LChaveAPI = '' then
+    raise EConfiguracaoGemini.Create(
+      'A chave da API Gemini nao foi fornecida pela fonte configurada.');
+  SetLength(LCabecalhosHTTP, CQuantidadeCabecalhosGemini);
+  LCabecalhosHTTP[CIndiceChaveGemini] := TCabecalhoHTTP.Criar(
+    CCabecalhoChaveGemini, LChaveAPI);
+  LCabecalhosHTTP[CIndiceTipoConteudoGemini] := TCabecalhoHTTP.Criar(
+    CCabecalhoTipoConteudoGemini, CTipoConteudoJSONGemini);
+  LCabecalhosHTTP[CIndiceAceiteGemini] := TCabecalhoHTTP.Criar(
+    CCabecalhoAceiteGemini, CTipoConteudoJSONGemini);
+  LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+  LOpcoesRequisicaoHTTP.Metodo := TMetodoHTTP.Get;
+  LOpcoesRequisicaoHTTP.URL := FConfiguracaoGemini.EndpointModelos;
+  LOpcoesRequisicaoHTTP.Cabecalhos := LCabecalhosHTTP;
+  LOpcoesRequisicaoHTTP.TimeoutConexaoMS :=
+    FConfiguracaoGemini.TimeoutConexaoMS;
+  LOpcoesRequisicaoHTTP.TimeoutRespostaMS :=
+    FConfiguracaoGemini.TimeoutRespostaMS;
+  LOpcoesRequisicaoHTTP.LimiteRespostaBytes :=
+    FConfiguracaoGemini.LimiteRespostaBytes;
+  LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
+  LRespostaHTTP := FTransporteHTTP.Enviar(LRequisicaoHTTP, ACancelamento);
+  if LRespostaHTTP = nil then
+    raise EContratoGemini.Create(
+      'O transporte HTTP nao retornou a lista de modelos Gemini.');
+  if not LRespostaHTTP.FoiSucesso then
+    LancarErroResposta(LRespostaHTTP, LChaveAPI);
+  LRespostaModelosGemini := nil;
+  try
+    try
+      LRespostaModelosGemini := TSerializadorJSON.Desserializar<
+        TRespostaModelosGemini>(LRespostaHTTP.Corpo);
+    except
+      on E: ESerializacaoJSON do
+        raise EContratoGemini.Create(
+          'A API Gemini retornou uma lista de modelos invalida.');
+    end;
+    Result := FMapeadorGemini.MapearModelos(LRespostaModelosGemini);
+  finally
+    LRespostaModelosGemini.Free;
+  end;
 end;
 
 function TAdaptadorGemini.Concluir(const ARequisicao: IRequisicaoChatIA;
@@ -185,7 +251,7 @@ begin
     raise EContratoGemini.Create(
       'O transporte HTTP nao retornou uma resposta para a Gemini.');
   if not LRespostaHTTP.FoiSucesso then
-    LancarErroResposta(LRespostaHTTP);
+    LancarErroResposta(LRespostaHTTP, LChaveAPI);
   LContratoRespostaGemini := nil;
   try
     try

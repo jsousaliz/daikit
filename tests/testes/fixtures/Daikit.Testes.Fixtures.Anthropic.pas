@@ -20,7 +20,7 @@ const
   CRespostaAnthropicErro =
     '{"type":"error","error":{' +
     '"type":"invalid_request_error",' +
-    '"message":"conteudo-sensivel-anthropic"},' +
+    '"message":"Modelo invalido. Chave: chave-anthropic-falsa.\r\nRevise o identificador."},' +
     '"request_id":"req_corpo_123"}';
 
 implementation

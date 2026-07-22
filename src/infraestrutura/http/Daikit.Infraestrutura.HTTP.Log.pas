@@ -57,7 +57,7 @@ begin
     LMensagemLog := ''
   else
     LMensagemLog := Sanitizar(ARequisicao.Corpo);
-  Publicar(TTipoEventoLogIA.Requisicao, TNivelLogIA.Informacao,
+  Publicar(TTipoEventoLogIA.Requisicao, TNivelLogIA.Requisicao,
     LMensagemLog, CStatusHTTPNaoInformado);
 
   try
@@ -70,9 +70,9 @@ begin
     end;
 
     if Result.FoiSucesso then
-      LNivelLog := TNivelLogIA.Informacao
+      LNivelLog := TNivelLogIA.Resposta
     else
-      LNivelLog := TNivelLogIA.Erro;
+      LNivelLog := TNivelLogIA.RespostaErro;
     Publicar(TTipoEventoLogIA.Resposta, LNivelLog, Sanitizar(Result.Corpo),
       Result.Status);
   except

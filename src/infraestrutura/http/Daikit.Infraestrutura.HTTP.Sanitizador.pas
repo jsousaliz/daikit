@@ -13,6 +13,8 @@ type
     class function SanitizarCabecalhos(
       const ACabecalhos: TArray<TCabecalhoHTTP>): TArray<TCabecalhoHTTP>; static;
     class function SanitizarURL(const AURL: string): string; static;
+    class function SanitizarMensagemErro(const AMensagem: string;
+      const ASegredos: array of string): string; static;
   end;
 
 implementation
@@ -58,6 +60,31 @@ begin
     if EhNomeSensivel(Result[I].Nome) then
       Result[I].Valor := CValorSensivelRemovido;
   end;
+end;
+
+class function TSanitizadorHTTP.SanitizarMensagemErro(
+  const AMensagem: string; const ASegredos: array of string): string;
+var
+  I: Integer;
+  LCaractere: Char;
+  LSegredo: string;
+  LTexto: string;
+begin
+  LTexto := AMensagem;
+  for I := 1 to Length(LTexto) do
+  begin
+    LCaractere := LTexto[I];
+    if Ord(LCaractere) < 32 then
+      LTexto[I] := ' ';
+  end;
+  for LSegredo in ASegredos do
+    if LSegredo <> '' then
+      LTexto := StringReplace(LTexto, LSegredo, CValorSensivelRemovido,
+        [rfReplaceAll]);
+  Result := Trim(LTexto);
+  if Length(Result) > CLimiteMensagemErroCaracteres then
+    Result := Copy(Result, 1, CLimiteMensagemErroCaracteres) +
+      CSufixoMensagemTruncada;
 end;
 
 class function TSanitizadorHTTP.SanitizarURL(const AURL: string): string;

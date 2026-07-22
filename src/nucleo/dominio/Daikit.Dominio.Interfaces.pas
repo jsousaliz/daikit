@@ -3,6 +3,14 @@ unit Daikit.Dominio.Interfaces;
 interface
 
 type
+  IModeloIA = interface
+    ['{ED6473D7-A797-423D-A430-1628C351CFE3}']
+    function ObterId: string;
+    function ObterNome: string;
+    property Id: string read ObterId;
+    property Nome: string read ObterNome;
+  end;
+
   TTipoParteConteudoIA = (Texto);
   TPapelMensagemIA = (Sistema, Usuario, Assistente, Ferramenta);
   TModoConversaIA = (ManterHistorico, MensagemIsolada);

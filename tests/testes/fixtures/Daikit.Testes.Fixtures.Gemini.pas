@@ -18,10 +18,10 @@ const
     '"usage":{"input_tokens":2,"output_tokens":3,"total_tokens":5}}';
 
   CRespostaGeminiErro =
-    '{"error":{"code":400,"message":"conteudo-sensivel-gemini",' +
+    '{"error":{"code":400,"message":"Modelo invalido. Chave: chave-gemini-falsa.\r\nRevise o identificador.",' +
     '"status":"INVALID_ARGUMENT"}}';
   CRespostaGeminiErroEmLista =
-    '[{"error":{"code":400,"message":"conteudo-sensivel-gemini",' +
+    '[{"error":{"code":400,"message":"Modelo invalido. Chave: chave-gemini-falsa.\r\nRevise o identificador.",' +
     '"status":"INVALID_ARGUMENT"}}]';
 
   CRespostaGeminiComPensamento =

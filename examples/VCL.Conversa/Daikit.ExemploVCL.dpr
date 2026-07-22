@@ -1,6 +1,7 @@
 program DaikitExemploVCL;
 
 uses
+  MidasLib,
   Vcl.Forms,
   Daikit.ExemploVCL.Principal in 'Daikit.ExemploVCL.Principal.pas' {FormPrincipal};
 

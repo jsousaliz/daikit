@@ -21,6 +21,8 @@ const
   CDescricaoLogFalhaHTTP = 'Falha no transporte HTTP (%s).';
   CDescricaoLogCancelamentoHTTP = 'Operacao HTTP cancelada.';
   CValorSensivelRemovido = '[REMOVIDO]';
+  CLimiteMensagemErroCaracteres = 2048;
+  CSufixoMensagemTruncada = '...';
   CSeparadorEsquemaURL = '://';
   CIndiceInicialTexto = 0;
   CCaractereRetornoCarro = #13;

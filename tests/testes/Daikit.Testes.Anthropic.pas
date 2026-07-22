@@ -17,11 +17,12 @@ type
     [Test] procedure Adaptador_DeveUsarModeloPadrao;
     [Test] procedure Adaptador_DeveMapearRespostaEUso;
     [Test] procedure Adaptador_DevePreservarMultiplosTextos;
-    [Test] procedure Adaptador_DeveMapearErroSemExporMensagem;
+    [Test] procedure Adaptador_DeveMapearErroComMensagemSanitizada;
     [Test] procedure Adaptador_DeveFalharSemChaveAntesDoTransporte;
     [Test] procedure Adaptador_DeveRespeitarCancelamento;
     [Test] procedure Adaptador_DeveInformarCapacidadesImplementadas;
     [Test] procedure Configuracao_DeveExigirHTTPS;
+    [Test] procedure Adaptador_DeveListarModelosDisponiveis;
   end;
 
 implementation
@@ -38,6 +39,7 @@ uses
   Daikit.Adaptadores.Interfaces,
   Daikit.Adaptadores.ChaveAPI,
   Daikit.Infraestrutura.HTTP.Interfaces,
+  Daikit.Infraestrutura.HTTP.Constantes,
   Daikit.Infraestrutura.HTTP.Modelos,
   Daikit.Adaptadores.Anthropic.Constantes,
   Daikit.Adaptadores.Anthropic.Contratos,
@@ -48,6 +50,12 @@ uses
   Daikit.Adaptadores.Anthropic.Adaptador,
   Daikit.Testes.TransporteHTTPFalso,
   Daikit.Testes.Fixtures.Anthropic;
+
+const
+  CChaveAnthropicTeste = 'chave-anthropic-falsa';
+  CRespostaModelosAnthropicTeste =
+    '{"data":[{"id":"claude-sonnet-4-6",' +
+    '"display_name":"Claude Sonnet 4.6"}],"has_more":false}';
 
 function CriarRequisicao(const AModelo: string = 'modelo-explicito';
   APapel: TPapelMensagemIA = TPapelMensagemIA.Usuario): IRequisicaoChatIA;
@@ -60,7 +68,7 @@ begin
 end;
 
 function CriarAdaptador(out ATransporte: TTransporteHTTPFalso;
-  const AChave: string = 'chave-anthropic-falsa'): IAdaptadorIA;
+  const AChave: string = CChaveAnthropicTeste): IAdaptadorIA;
 var
   LTransporteHTTPFalso: ITransporteHTTP;
   LFonteChaveAPI: IFonteChaveAPI;
@@ -99,6 +107,25 @@ begin
   for LCabecalhoHTTP in ARequisicao.Cabecalhos do
     if SameText(LCabecalhoHTTP.Nome, ANome) then
       Exit(LCabecalhoHTTP.Valor);
+end;
+
+procedure TTestesAnthropic.Adaptador_DeveListarModelosDisponiveis;
+var
+  LAdaptador: IAdaptadorIA;
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LModelos: TArray<IModeloIA>;
+begin
+  LAdaptador := CriarAdaptador(LTransporteHTTPFalso);
+  LTransporteHTTPFalso.ProgramarResposta(
+    RespostaHTTP(200, CRespostaModelosAnthropicTeste));
+  LModelos := LAdaptador.ListarModelos;
+  Assert.AreEqual(1, Integer(Length(LModelos)));
+  Assert.AreEqual('claude-sonnet-4-6', LModelos[0].Id);
+  Assert.AreEqual('Claude Sonnet 4.6', LModelos[0].Nome);
+  Assert.AreEqual(CEndpointModelosAnthropic,
+    LTransporteHTTPFalso.UltimaRequisicao.URL);
+  Assert.IsTrue(LTransporteHTTPFalso.UltimaRequisicao.Metodo =
+    TMetodoHTTP.Get);
 end;
 
 procedure TTestesAnthropic.Configuracao_DeveExigirHTTPS;
@@ -230,7 +257,7 @@ begin
   Assert.IsFalse(LAdaptador.Capacidades.SuportaSaidaEstruturada);
 end;
 
-procedure TTestesAnthropic.Adaptador_DeveMapearErroSemExporMensagem;
+procedure TTestesAnthropic.Adaptador_DeveMapearErroComMensagemSanitizada;
 var
   LTransporteHTTPFalso: TTransporteHTTPFalso;
   LAdaptador: IAdaptadorIA;
@@ -247,7 +274,12 @@ begin
       LCapturou := True;
       Assert.AreEqual('invalid_request_error', E.TipoErro);
       Assert.AreEqual('req_corpo_123', E.IdRequisicao);
-      Assert.IsFalse(E.Message.Contains('conteudo-sensivel-anthropic'));
+      Assert.IsTrue(E.MensagemAPI.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains('Modelo invalido.'));
+      Assert.IsTrue(E.Message.Contains(CValorSensivelRemovido));
+      Assert.IsFalse(E.Message.Contains(CChaveAnthropicTeste));
+      Assert.IsFalse(E.Message.Contains(#13));
+      Assert.IsFalse(E.Message.Contains(#10));
     end;
   end;
   Assert.IsTrue(LCapturou);

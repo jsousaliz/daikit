@@ -24,6 +24,7 @@ type
     [Test] procedure FluxoLimitado_DeveAceitarConteudoDentroDoLimite;
     [Test] procedure FluxoLimitado_DeveRecusarConteudoAcimaDoLimite;
     [Test] procedure Sanitizador_DeveOcultarCabecalhosSensiveis;
+    [Test] procedure Sanitizador_DeveLimparMensagemErro;
     [Test] procedure Sanitizador_DeveRemoverConsultaCompleta;
     [Test] procedure Sanitizador_DeveRemoverConsultaCodificada;
     [Test] procedure Sanitizador_DeveRemoverFragmentoDaURL;
@@ -270,6 +271,28 @@ begin
   Assert.AreEqual(CValorSensivelRemovido, LSanitizados[0].Valor);
   Assert.AreEqual('application/json', LSanitizados[1].Valor);
   Assert.AreEqual('Bearer segredo', LOriginais[0].Valor);
+end;
+
+procedure TTestesHTTP.Sanitizador_DeveLimparMensagemErro;
+const
+  CSegredoTeste = 'chave-secreta';
+var
+  LMensagemSanitizada: string;
+begin
+  LMensagemSanitizada := TSanitizadorHTTP.SanitizarMensagemErro(
+    'Falha com ' + CSegredoTeste + #13#10 + 'na requisicao.',
+    [CSegredoTeste]);
+  Assert.IsTrue(LMensagemSanitizada.Contains('Falha com'));
+  Assert.IsTrue(LMensagemSanitizada.Contains(CValorSensivelRemovido));
+  Assert.IsFalse(LMensagemSanitizada.Contains(CSegredoTeste));
+  Assert.IsFalse(LMensagemSanitizada.Contains(#13));
+  Assert.IsFalse(LMensagemSanitizada.Contains(#10));
+
+  LMensagemSanitizada := TSanitizadorHTTP.SanitizarMensagemErro(
+    StringOfChar('a', CLimiteMensagemErroCaracteres + 1), []);
+  Assert.AreEqual(CLimiteMensagemErroCaracteres +
+    Length(CSufixoMensagemTruncada), Length(LMensagemSanitizada));
+  Assert.IsTrue(LMensagemSanitizada.EndsWith(CSufixoMensagemTruncada));
 end;
 
 procedure TTestesHTTP.Sanitizador_DeveRemoverFragmentoDaURL;

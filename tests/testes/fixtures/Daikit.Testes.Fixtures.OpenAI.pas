@@ -31,7 +31,7 @@ const
 
   CRespostaOpenAIErro =
     '{"error":{' +
-      '"message":"conteudo-sensivel-da-fixture",' +
+      '"message":"Modelo invalido. Chave: sk-chave-falsa-de-teste.\r\nRevise o identificador.",' +
       '"type":"invalid_request_error",' +
       '"param":"model",' +
       '"code":"model_not_found"' +

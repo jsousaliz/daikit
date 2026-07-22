@@ -9,14 +9,16 @@ uses
 
 type
   IConfiguracaoOpenAI = interface(IConfiguracaoAdaptadorIA)
-    ['{F8799BC6-8D9C-4B8B-9A51-21CD97F89A20}']
+    ['{A8EF134F-369B-46F5-8D52-FCB04AF8B4A0}']
   end;
 
   IMapeadorOpenAI = interface
-    ['{415B4563-D314-438A-8B53-D5E114B6F627}']
+    ['{D20EF4F4-B035-4333-9B23-165BCFA25BE6}']
     function CriarContratoRequisicao(const ARequisicao: IRequisicaoChatIA;
       const AModeloPadrao: string): TRequisicaoRespostasOpenAI;
     function MapearResposta(AResposta: TRespostaOpenAI): IRespostaChatIA;
+    function MapearModelos(
+      AResposta: TRespostaModelosOpenAI): TArray<IModeloIA>;
   end;
 
 implementation

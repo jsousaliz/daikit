@@ -14,6 +14,7 @@ type
   TProvedorOpenAI = class(TProvedorIA)
   protected
     function ObterEndpointPadrao: string; override;
+    function ObterEndpointModelosPadrao: string; override;
     function ObterModeloPadraoDoAdaptador: string; override;
     function ObterVariavelAmbienteChaveAPIPadrao: string; override;
     function ObterNomeProvedorLog: string; override;
@@ -29,6 +30,7 @@ type
     function ArmazenarVersaoAPI: Boolean;
   protected
     function ObterEndpointPadrao: string; override;
+    function ObterEndpointModelosPadrao: string; override;
     function ObterModeloPadraoDoAdaptador: string; override;
     function ObterVariavelAmbienteChaveAPIPadrao: string; override;
     function ObterNomeProvedorLog: string; override;
@@ -50,6 +52,7 @@ type
     FArmazenamentoContextoGemini: IArmazenamentoContextoGemini;
   protected
     function ObterEndpointPadrao: string; override;
+    function ObterEndpointModelosPadrao: string; override;
     function ObterModeloPadraoDoAdaptador: string; override;
     function ObterVariavelAmbienteChaveAPIPadrao: string; override;
     function ObterNomeProvedorLog: string; override;
@@ -103,7 +106,7 @@ begin
     LFonteChaveAPI := TFonteChaveAPIAmbiente.Create(VariavelAmbienteChaveAPI);
   
   LOpcoesConfiguracaoOpenAI := TOpcoesConfiguracaoAdaptadorIA.Padrao(
-    Endpoint, ModeloPadrao);
+    Endpoint, EndpointModelos, ModeloPadrao);
   LOpcoesConfiguracaoOpenAI.TimeoutConexaoMS := TimeoutConexaoMS;
   LOpcoesConfiguracaoOpenAI.TimeoutRespostaMS := TimeoutRespostaMS;
   LOpcoesConfiguracaoOpenAI.LimiteRespostaBytes := LimiteRespostaBytes;
@@ -122,6 +125,11 @@ end;
 function TProvedorOpenAI.ObterEndpointPadrao: string;
 begin
   Result := CEndpointRespostasOpenAI;
+end;
+
+function TProvedorOpenAI.ObterEndpointModelosPadrao: string;
+begin
+  Result := CEndpointModelosOpenAI;
 end;
 
 function TProvedorOpenAI.ObterModeloPadraoDoAdaptador: string;
@@ -168,6 +176,7 @@ begin
 
   LOpcoesConfiguracaoAnthropic := TOpcoesConfiguracaoAnthropic.Padrao;
   LOpcoesConfiguracaoAnthropic.Comum.Endpoint := Endpoint;
+  LOpcoesConfiguracaoAnthropic.Comum.EndpointModelos := EndpointModelos;
   LOpcoesConfiguracaoAnthropic.Comum.ModeloPadrao := ModeloPadrao;
   LOpcoesConfiguracaoAnthropic.VersaoAPI := ObterVersaoAPI;
   LOpcoesConfiguracaoAnthropic.MaximoTokens := FMaximoTokens;
@@ -190,6 +199,11 @@ end;
 function TProvedorAnthropic.ObterEndpointPadrao: string;
 begin
   Result := CEndpointMensagensAnthropic;
+end;
+
+function TProvedorAnthropic.ObterEndpointModelosPadrao: string;
+begin
+  Result := CEndpointModelosAnthropic;
 end;
 
 function TProvedorAnthropic.ObterModeloPadraoDoAdaptador: string;
@@ -227,6 +241,7 @@ begin
 
   LOpcoesConfiguracaoGemini := TOpcoesConfiguracaoGemini.Padrao;
   LOpcoesConfiguracaoGemini.Comum.Endpoint := Endpoint;
+  LOpcoesConfiguracaoGemini.Comum.EndpointModelos := EndpointModelos;
   LOpcoesConfiguracaoGemini.Comum.ModeloPadrao := ModeloPadrao;
   LOpcoesConfiguracaoGemini.MaximoTokens := FMaximoTokens;
   LOpcoesConfiguracaoGemini.Comum.TimeoutConexaoMS := TimeoutConexaoMS;
@@ -254,6 +269,11 @@ end;
 function TProvedorGemini.ObterEndpointPadrao: string;
 begin
   Result := CEndpointInteracoesGemini;
+end;
+
+function TProvedorGemini.ObterEndpointModelosPadrao: string;
+begin
+  Result := CEndpointModelosGemini;
 end;
 
 function TProvedorGemini.ObterModeloPadraoDoAdaptador: string;

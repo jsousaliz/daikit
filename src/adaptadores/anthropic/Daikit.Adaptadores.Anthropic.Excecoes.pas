@@ -15,25 +15,33 @@ type
     FStatusHTTP: Integer;
     FTipoErro: string;
     FIdRequisicao: string;
+    FMensagemAPI: string;
   public
     constructor Create(AStatusHTTP: Integer; const ATipoErro,
-      AIdRequisicao: string);
+      AIdRequisicao, AMensagemAPI: string);
     property StatusHTTP: Integer read FStatusHTTP;
     property TipoErro: string read FTipoErro;
     property IdRequisicao: string read FIdRequisicao;
+    property MensagemAPI: string read FMensagemAPI;
   end;
 
 implementation
 
 constructor ERespostaAnthropic.Create(AStatusHTTP: Integer;
-  const ATipoErro, AIdRequisicao: string);
+  const ATipoErro, AIdRequisicao, AMensagemAPI: string);
 begin
-  inherited CreateFmt(
-    'A API Anthropic recusou a requisicao (HTTP %d, tipo "%s", id "%s").',
-    [AStatusHTTP, ATipoErro, AIdRequisicao]);
+  if AMensagemAPI = '' then
+    inherited CreateFmt(
+      'A API Anthropic recusou a requisicao (HTTP %d, tipo "%s", id "%s").',
+      [AStatusHTTP, ATipoErro, AIdRequisicao])
+  else
+    inherited CreateFmt(
+      'A API Anthropic recusou a requisicao (HTTP %d, tipo "%s", id "%s"). Mensagem: %s',
+      [AStatusHTTP, ATipoErro, AIdRequisicao, AMensagemAPI]);
   FStatusHTTP := AStatusHTTP;
   FTipoErro := ATipoErro;
   FIdRequisicao := AIdRequisicao;
+  FMensagemAPI := AMensagemAPI;
 end;
 
 end.

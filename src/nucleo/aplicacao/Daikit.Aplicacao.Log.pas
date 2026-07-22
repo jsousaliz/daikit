@@ -5,7 +5,7 @@ interface
 {$SCOPEDENUMS ON}
 
 type
-  TNivelLogIA = (Informacao, Erro);
+  TNivelLogIA = (Informacao, Erro, Requisicao, Resposta, RespostaErro);
   TTipoEventoLogIA = (Requisicao, Resposta, Erro, Cancelamento);
 
   IEventoLogIA = interface

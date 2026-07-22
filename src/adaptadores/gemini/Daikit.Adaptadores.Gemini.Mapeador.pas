@@ -19,6 +19,8 @@ type
       AMaximoTokens: Integer): TRequisicaoInteracaoGemini;
     function MapearResposta(
       AResposta: TRespostaInteracaoGemini): IRespostaChatIA;
+    function MapearModelos(
+      AResposta: TRespostaModelosGemini): TArray<IModeloIA>;
   end;
 
 implementation
@@ -28,6 +30,7 @@ uses
   System.Classes,
   System.Generics.Collections,
   Daikit.Dominio.Mensagem,
+  Daikit.Dominio.Modelo,
   Daikit.Dominio.RequisicaoResposta,
   Daikit.Infraestrutura.JSON.Constantes,
   Daikit.Infraestrutura.JSON.Excecoes,
@@ -98,6 +101,49 @@ function EhCorrelacaoGemini(const AIdCorrelacao: string): Boolean;
 begin
   Result := SameText(Copy(AIdCorrelacao, 1, Length(CPrefixoContextoGemini)),
     CPrefixoContextoGemini);
+end;
+
+function SuportaGeracaoConteudo(AModelo: TModeloGemini): Boolean;
+var
+  LMetodo: string;
+begin
+  Result := False;
+  for LMetodo in AModelo.MetodosGeracaoSuportados do
+    if SameText(LMetodo, CMetodoGeracaoConteudoGemini) then
+      Exit(True);
+end;
+
+function TMapeadorGemini.MapearModelos(
+  AResposta: TRespostaModelosGemini): TArray<IModeloIA>;
+var
+  LModeloGemini: TModeloGemini;
+  LModelos: TList<IModeloIA>;
+  LIdModelo: string;
+begin
+  if AResposta = nil then
+    raise EContratoGemini.Create(
+      'A resposta de modelos Gemini deve ser informada.');
+  LModelos := TList<IModeloIA>.Create;
+  try
+    for LModeloGemini in AResposta.Modelos do
+      if (LModeloGemini <> nil) and SuportaGeracaoConteudo(LModeloGemini) then
+      begin
+        LIdModelo := Trim(LModeloGemini.IdModeloBase);
+        if LIdModelo = '' then
+        begin
+          LIdModelo := Trim(LModeloGemini.NomeRecurso);
+          if Copy(LIdModelo, 1, Length(CPrefixoNomeModeloGemini)) =
+            CPrefixoNomeModeloGemini then
+            Delete(LIdModelo, 1, Length(CPrefixoNomeModeloGemini));
+        end;
+        if LIdModelo <> '' then
+          LModelos.Add(TModeloIA.Create(LIdModelo,
+            LModeloGemini.NomeExibicao));
+      end;
+    Result := LModelos.ToArray;
+  finally
+    LModelos.Free;
+  end;
 end;
 
 procedure ValidarPassosResposta(

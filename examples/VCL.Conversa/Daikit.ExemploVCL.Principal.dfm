@@ -1,7 +1,7 @@
 object FormPrincipal: TFormPrincipal
   Left = 0
   Top = 0
-  Caption = 'Daikit - conversa com IA'
+  Caption = 'Daikit - Conversa com IA'
   ClientHeight = 560
   ClientWidth = 640
   Color = clBtnFace
@@ -24,20 +24,12 @@ object FormPrincipal: TFormPrincipal
     Anchors = [akLeft, akBottom]
     Caption = 'Log'
   end
-  object ComboNivelLog: TComboBox
-    Left = 48
-    Top = 408
-    Width = 110
-    Height = 23
-    Style = csDropDownList
-    Anchors = [akLeft, akBottom]
-    ItemIndex = 0
-    TabOrder = 8
-    Text = 'Todos os niveis'
-    Items.Strings = (
-      'Todos os niveis'
-      'Informacao'
-      'Erro')
+  object LabelUso: TLabel
+    Left = 16
+    Top = 44
+    Width = 5
+    Height = 15
+    Caption = '-'
   end
   object BotaoLimparLog: TButton
     Left = 536
@@ -46,32 +38,24 @@ object FormPrincipal: TFormPrincipal
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Limpar log'
-    TabOrder = 9
+    TabOrder = 8
+    TabStop = False
     OnClick = BotaoLimparLogClick
-  end
-  object LabelUso: TLabel
-    Left = 619
-    Top = 341
-    Width = 5
-    Height = 15
-    Alignment = taRightJustify
-    Anchors = [akTop, akRight]
-    Caption = '-'
   end
   object MemoConversa: TMemo
     Left = 16
-    Top = 48
+    Top = 67
     Width = 608
     Height = 289
     Anchors = [akLeft, akTop, akRight, akBottom]
     ReadOnly = True
     ScrollBars = ssVertical
-    TabOrder = 1
+    TabOrder = 3
   end
   object ComboProvedor: TComboBox
     Left = 16
     Top = 16
-    Width = 129
+    Width = 90
     Height = 23
     Style = csDropDownList
     ItemIndex = 0
@@ -86,66 +70,123 @@ object FormPrincipal: TFormPrincipal
   object EditMensagem: TEdit
     Left = 16
     Top = 365
-    Width = 505
+    Width = 418
     Height = 23
     Anchors = [akLeft, akRight, akBottom]
-    TabOrder = 2
+    TabOrder = 4
   end
   object BotaoEnviar: TButton
-    Left = 536
-    Top = 364
+    Left = 442
+    Top = 362
     Width = 88
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Enviar'
     Default = True
-    TabOrder = 3
+    TabOrder = 5
     OnClick = BotaoEnviarClick
   end
-  object MemoLog: TMemo
+  object DBGridLog: TDBGrid
     Left = 16
     Top = 440
     Width = 608
     Height = 104
     Anchors = [akLeft, akRight, akBottom]
+    DataSource = DataSourceLog
+    Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgTitleClick, dgTitleHotTrack]
     ReadOnly = True
-    ScrollBars = ssVertical
-    TabOrder = 4
-    WordWrap = False
+    TabOrder = 7
+    TitleFont.Charset = DEFAULT_CHARSET
+    TitleFont.Color = clWindowText
+    TitleFont.Height = -12
+    TitleFont.Name = 'Segoe UI'
+    TitleFont.Style = []
+    Columns = <
+      item
+        Expanded = False
+        FieldName = 'DataHoraUTC'
+        Title.Caption = 'Data/hora UTC'
+        Width = 135
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'Tipo'
+        Width = 75
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'Nivel'
+        Title.Caption = 'N'#237'vel'
+        Width = 85
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'Provedor'
+        Width = 70
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'Mensagem'
+        Width = 500
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'StatusHTTP'
+        Title.Caption = 'HTTP'
+        Width = 50
+        Visible = True
+      end>
   end
   object ComboModelo: TComboBox
-    Left = 158
+    Left = 112
     Top = 16
     Width = 129
     Height = 23
     Style = csDropDownList
-    TabOrder = 5
-    OnChange = ComboProvedorChange
+    TabOrder = 1
+    OnChange = ComboModeloChange
   end
   object ButtonLimpar: TButton
     Left = 536
-    Top = 16
+    Top = 362
     Width = 88
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Limpar'
     Default = True
     TabOrder = 6
+    TabStop = False
     OnClick = ButtonLimparClick
   end
   object ComboModoConversa: TComboBox
-    Left = 299
+    Left = 392
     Top = 16
     Width = 129
     Height = 23
     Style = csDropDownList
     ItemIndex = 0
-    TabOrder = 7
+    TabOrder = 2
     Text = 'Manter o Hist'#243'rico'
     OnChange = ComboModoConversaChange
     Items.Strings = (
       'Manter o Hist'#243'rico'
       'Mensagem Isolada')
+  end
+  object ButtonCarregarModelos: TButton
+    Left = 247
+    Top = 16
+    Width = 139
+    Height = 23
+    Anchors = [akRight, akBottom]
+    Caption = 'Carregar todos modelos'
+    Default = True
+    TabOrder = 9
+    OnClick = ButtonCarregarModelosClick
   end
   object ProvedorOpenAI: TProvedorOpenAI
     VariavelAmbienteChaveAPI = 'OPENAI_API_KEY'
@@ -172,7 +213,19 @@ object FormPrincipal: TFormPrincipal
     AoOcorrerErro = ChatIAAoOcorrerErro
     AoConcluir = ChatIAAoConcluir
     AoRegistrarLog = ChatIAAoRegistrarLog
+    AoReceberModelos = ChatIAAoReceberModelos
     Left = 280
+    Top = 88
+  end
+  object ClientDataSetLog: TClientDataSet
+    Aggregates = <>
+    Params = <>
+    Left = 400
+    Top = 88
+  end
+  object DataSourceLog: TDataSource
+    DataSet = ClientDataSetLog
+    Left = 464
     Top = 88
   end
 end

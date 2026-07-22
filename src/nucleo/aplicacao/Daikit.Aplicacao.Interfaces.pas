@@ -24,10 +24,12 @@ type
   end;
 
   IAdaptadorIA = interface
-    ['{06578615-863D-4222-84D1-5EDD82763E77}']
+    ['{D787C067-E0BF-47E7-852F-9FF3343B5CDB}']
     function ObterCapacidades: ICapacidadesAdaptadorIA;
     function Concluir(const ARequisicao: IRequisicaoChatIA;
       const ACancelamento: ITokenCancelamentoIA = nil): IRespostaChatIA;
+    function ListarModelos(
+      const ACancelamento: ITokenCancelamentoIA = nil): TArray<IModeloIA>;
     property Capacidades: ICapacidadesAdaptadorIA read ObterCapacidades;
   end;
 

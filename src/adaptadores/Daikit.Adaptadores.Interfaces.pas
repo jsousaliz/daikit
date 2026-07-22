@@ -9,13 +9,15 @@ type
   end;
 
   IConfiguracaoAdaptadorIA = interface
-    ['{B72E987E-D626-4777-A3A0-D73DE3B15E68}']
+    ['{DA038848-36EB-4B9B-B5EF-2C4EA186ABDC}']
     function ObterEndpoint: string;
+    function ObterEndpointModelos: string;
     function ObterModeloPadrao: string;
     function ObterTimeoutConexaoMS: Integer;
     function ObterTimeoutRespostaMS: Integer;
     function ObterLimiteRespostaBytes: Int64;
     property Endpoint: string read ObterEndpoint;
+    property EndpointModelos: string read ObterEndpointModelos;
     property ModeloPadrao: string read ObterModeloPadrao;
     property TimeoutConexaoMS: Integer read ObterTimeoutConexaoMS;
     property TimeoutRespostaMS: Integer read ObterTimeoutRespostaMS;

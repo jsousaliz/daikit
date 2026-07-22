@@ -37,7 +37,8 @@ class function TOpcoesConfiguracaoAnthropic.Padrao:
   TOpcoesConfiguracaoAnthropic;
 begin
   Result.Comum := TOpcoesConfiguracaoAdaptadorIA.Padrao(
-    CEndpointMensagensAnthropic, CModeloAnthropicPadrao);
+    CEndpointMensagensAnthropic, CEndpointModelosAnthropic,
+    CModeloAnthropicPadrao);
   Result.VersaoAPI := CVersaoAPIAnthropic;
   Result.MaximoTokens := CMaximoTokensSaidaPadraoAnthropic;
 end;

@@ -22,7 +22,7 @@ type
   end;
 
   IConfiguracaoGemini = interface(IConfiguracaoAdaptadorIA)
-    ['{201CA7F1-F910-42B9-9CA7-6BAFE73D129A}']
+    ['{0EBDBC1D-3767-4AF7-8915-C93A681EA384}']
     function ObterMaximoTokens: Integer;
     function ObterModoContexto: TModoContextoGemini;
     property MaximoTokens: Integer read ObterMaximoTokens;
@@ -30,12 +30,14 @@ type
   end;
 
   IMapeadorGemini = interface
-    ['{4878F2A1-B397-48E1-BF69-840E78E327B7}']
+    ['{B4B4C317-E8D9-4839-90CC-1C91D5A1A9CC}']
     function CriarContratoRequisicao(const ARequisicao: IRequisicaoChatIA;
       const AModeloPadrao: string;
       AMaximoTokens: Integer): TRequisicaoInteracaoGemini;
     function MapearResposta(
       AResposta: TRespostaInteracaoGemini): IRespostaChatIA;
+    function MapearModelos(
+      AResposta: TRespostaModelosGemini): TArray<IModeloIA>;
   end;
 
 implementation

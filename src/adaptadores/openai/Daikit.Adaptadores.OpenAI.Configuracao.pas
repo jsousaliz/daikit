@@ -24,7 +24,8 @@ uses
 constructor TConfiguracaoOpenAI.Create;
 begin
   Create(TOpcoesConfiguracaoAdaptadorIA.Padrao(
-    CEndpointRespostasOpenAI, CModeloOpenAIRecomendado));
+    CEndpointRespostasOpenAI, CEndpointModelosOpenAI,
+    CModeloOpenAIRecomendado));
 end;
 
 constructor TConfiguracaoOpenAI.Create(

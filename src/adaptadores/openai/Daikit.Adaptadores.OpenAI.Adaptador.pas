@@ -25,6 +25,8 @@ type
     function ObterCapacidades: ICapacidadesAdaptadorIA;
     function Concluir(const ARequisicao: IRequisicaoChatIA;
       const ACancelamento: ITokenCancelamentoIA = nil): IRespostaChatIA;
+    function ListarModelos(
+      const ACancelamento: ITokenCancelamentoIA = nil): TArray<IModeloIA>;
   end;
 
 implementation
@@ -34,20 +36,24 @@ uses
   Daikit.Dominio.Excecoes,
   Daikit.Aplicacao.CapacidadesAdaptador,
   Daikit.Infraestrutura.HTTP.Modelos,
+  Daikit.Infraestrutura.HTTP.Sanitizador,
   Daikit.Infraestrutura.JSON.Excecoes,
   Daikit.Infraestrutura.JSON.Serializador,
   Daikit.Adaptadores.OpenAI.Constantes,
   Daikit.Adaptadores.OpenAI.Contratos,
   Daikit.Adaptadores.OpenAI.Excecoes;
 
-procedure LancarErroResposta(const AResposta: IRespostaHTTP);
+procedure LancarErroResposta(const AResposta: IRespostaHTTP;
+  const AChaveAPI: string);
 var
   LEnvelopeErroOpenAI: TEnvelopeErroOpenAI;
   LTipoErro: string;
   LCodigoErro: string;
+  LMensagemAPI: string;
 begin
   LTipoErro := '';
   LCodigoErro := '';
+  LMensagemAPI := '';
   LEnvelopeErroOpenAI := nil;
   try
     try
@@ -57,12 +63,14 @@ begin
       begin
         LTipoErro := LEnvelopeErroOpenAI.Erro.Tipo;
         LCodigoErro := LEnvelopeErroOpenAI.Erro.Codigo;
+        LMensagemAPI := LEnvelopeErroOpenAI.Erro.Mensagem;
       end;
     except
       on E: ESerializacaoJSON do
       begin
         LTipoErro := '';
         LCodigoErro := '';
+        LMensagemAPI := '';
       end;
     end;
   finally
@@ -70,7 +78,8 @@ begin
   end;
   raise ERespostaOpenAI.Create(AResposta.Status, LTipoErro, LCodigoErro,
     TCabecalhoHTTP.ObterValor(AResposta.Cabecalhos,
-      CCabecalhoIdRequisicaoOpenAI));
+      CCabecalhoIdRequisicaoOpenAI),
+    TSanitizadorHTTP.SanitizarMensagemErro(LMensagemAPI, [AChaveAPI]));
 end;
 
 constructor TAdaptadorOpenAI.Create(const ATransporte: ITransporteHTTP;
@@ -97,6 +106,63 @@ end;
 function TAdaptadorOpenAI.ObterCapacidades: ICapacidadesAdaptadorIA;
 begin
   Result := FCapacidadesAdaptador;
+end;
+
+function TAdaptadorOpenAI.ListarModelos(
+  const ACancelamento: ITokenCancelamentoIA): TArray<IModeloIA>;
+var
+  LChaveAPI: string;
+  LCabecalhosHTTP: TArray<TCabecalhoHTTP>;
+  LOpcoesRequisicaoHTTP: TOpcoesRequisicaoHTTP;
+  LRequisicaoHTTP: IRequisicaoHTTP;
+  LRespostaHTTP: IRespostaHTTP;
+  LRespostaModelosOpenAI: TRespostaModelosOpenAI;
+begin
+  if (ACancelamento <> nil) and ACancelamento.FoiCancelado then
+    raise EOperacaoCanceladaIA.Create(
+      'A listagem de modelos OpenAI foi cancelada.');
+  LChaveAPI := Trim(FFonteChaveAPI.ObterChaveAPI);
+  if LChaveAPI = '' then
+    raise EConfiguracaoOpenAI.Create(
+      'A chave da API OpenAI nao foi fornecida pela fonte configurada.');
+  SetLength(LCabecalhosHTTP, CQuantidadeCabecalhosRequisicaoOpenAI);
+  LCabecalhosHTTP[CIndiceCabecalhoAutorizacaoOpenAI] :=
+    TCabecalhoHTTP.Criar(CCabecalhoAutorizacao, CPrefixoBearer + LChaveAPI);
+  LCabecalhosHTTP[CIndiceCabecalhoTipoConteudoOpenAI] :=
+    TCabecalhoHTTP.Criar(CCabecalhoTipoConteudo, CTipoConteudoJSON);
+  LCabecalhosHTTP[CIndiceCabecalhoAceiteOpenAI] :=
+    TCabecalhoHTTP.Criar(CCabecalhoAceite, CTipoConteudoJSON);
+  LOpcoesRequisicaoHTTP := TOpcoesRequisicaoHTTP.Padrao;
+  LOpcoesRequisicaoHTTP.Metodo := TMetodoHTTP.Get;
+  LOpcoesRequisicaoHTTP.URL := FConfiguracaoOpenAI.EndpointModelos;
+  LOpcoesRequisicaoHTTP.Cabecalhos := LCabecalhosHTTP;
+  LOpcoesRequisicaoHTTP.TimeoutConexaoMS :=
+    FConfiguracaoOpenAI.TimeoutConexaoMS;
+  LOpcoesRequisicaoHTTP.TimeoutRespostaMS :=
+    FConfiguracaoOpenAI.TimeoutRespostaMS;
+  LOpcoesRequisicaoHTTP.LimiteRespostaBytes :=
+    FConfiguracaoOpenAI.LimiteRespostaBytes;
+  LRequisicaoHTTP := TRequisicaoHTTP.Create(LOpcoesRequisicaoHTTP);
+  LRespostaHTTP := FTransporteHTTP.Enviar(LRequisicaoHTTP, ACancelamento);
+  if LRespostaHTTP = nil then
+    raise EContratoOpenAI.Create(
+      'O transporte HTTP nao retornou a lista de modelos OpenAI.');
+  if not LRespostaHTTP.FoiSucesso then
+    LancarErroResposta(LRespostaHTTP, LChaveAPI);
+  LRespostaModelosOpenAI := nil;
+  try
+    try
+      LRespostaModelosOpenAI := TSerializadorJSON.Desserializar<
+        TRespostaModelosOpenAI>(LRespostaHTTP.Corpo);
+    except
+      on E: ESerializacaoJSON do
+        raise EContratoOpenAI.Create(
+          'A API OpenAI retornou uma lista de modelos invalida.');
+    end;
+    Result := FMapeadorOpenAI.MapearModelos(LRespostaModelosOpenAI);
+  finally
+    LRespostaModelosOpenAI.Free;
+  end;
 end;
 
 function TAdaptadorOpenAI.Concluir(const ARequisicao: IRequisicaoChatIA;
@@ -156,7 +222,7 @@ begin
     raise EContratoOpenAI.Create(
       'O transporte HTTP nao retornou uma resposta para a OpenAI.');
   if not LRespostaHTTP.FoiSucesso then
-    LancarErroResposta(LRespostaHTTP);
+    LancarErroResposta(LRespostaHTTP, LChaveAPI);
 
   LContratoRespostaOpenAI := nil;
   try
@@ -172,7 +238,9 @@ begin
       raise ERespostaOpenAI.Create(LRespostaHTTP.Status, '',
         LContratoRespostaOpenAI.Erro.Codigo,
         TCabecalhoHTTP.ObterValor(LRespostaHTTP.Cabecalhos,
-          CCabecalhoIdRequisicaoOpenAI));
+          CCabecalhoIdRequisicaoOpenAI),
+        TSanitizadorHTTP.SanitizarMensagemErro(
+          LContratoRespostaOpenAI.Erro.Mensagem, [LChaveAPI]));
     Result := FMapeadorOpenAI.MapearResposta(LContratoRespostaOpenAI);
   finally
     LContratoRespostaOpenAI.Free;

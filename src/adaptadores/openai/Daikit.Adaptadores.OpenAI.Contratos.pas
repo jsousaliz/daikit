@@ -6,6 +6,23 @@ uses
   REST.Json.Types;
 
 type
+  TModeloOpenAI = class
+  private
+    [JSONName('id')] FId: string;
+    [JSONName('owned_by')] FProprietario: string;
+  public
+    property Id: string read FId write FId;
+    property Proprietario: string read FProprietario write FProprietario;
+  end;
+
+  TRespostaModelosOpenAI = class
+  private
+    [JSONName('data')] FModelos: TArray<TModeloOpenAI>;
+  public
+    destructor Destroy; override;
+    property Modelos: TArray<TModeloOpenAI> read FModelos write FModelos;
+  end;
+
   TMensagemEntradaOpenAI = class
   private
     [JSONName('role')]
@@ -126,6 +143,16 @@ type
   end;
 
 implementation
+
+destructor TRespostaModelosOpenAI.Destroy;
+var
+  LModeloOpenAI: TModeloOpenAI;
+begin
+  for LModeloOpenAI in FModelos do
+    LModeloOpenAI.Free;
+  FModelos := nil;
+  inherited;
+end;
 
 destructor TRequisicaoRespostasOpenAI.Destroy;
 var

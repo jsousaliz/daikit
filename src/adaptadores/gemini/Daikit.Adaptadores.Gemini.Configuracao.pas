@@ -35,7 +35,8 @@ uses
 class function TOpcoesConfiguracaoGemini.Padrao: TOpcoesConfiguracaoGemini;
 begin
   Result.Comum := TOpcoesConfiguracaoAdaptadorIA.Padrao(
-    CEndpointInteracoesGemini, CModeloGeminiPadrao);
+    CEndpointInteracoesGemini, CEndpointModelosGemini,
+    CModeloGeminiPadrao);
   Result.MaximoTokens := CMaximoTokensSaidaPadraoGemini;
   Result.ModoContexto := TModoContextoGemini.Local;
 end;

@@ -95,6 +95,32 @@ O padrão é `ModoConversa = ManterHistorico`. Use `MensagemIsolada` para não a
 
 O método `Enviar` inicia a operação em uma thread de trabalho e retorna imediatamente. A resposta é entregue em `AoReceberResposta`, falhas da operação em `AoOcorrerErro` e o encerramento em `AoConcluir`. Esses eventos, assim como `AoRegistrarLog`, são entregues na thread principal e podem atualizar controles VCL diretamente. Use `Cancelar` para solicitar o cancelamento da operação atual. Um segundo envio é recusado enquanto `Estado` for `Executando` ou `Cancelando`.
 
+## Modelos disponíveis
+
+`TChatIA.CarregarModelos` consulta assincronamente o provedor selecionado. O resultado é entregue na thread principal pelo evento `AoReceberModelos` como `TArray<IModeloIA>`. Cada item possui `Id`, usado nas requisições, e `Nome`, apropriado para exibição.
+
+```pascal
+procedure TFormPrincipal.ChatIAAoReceberModelos(Sender: TObject;
+  const AModelos: TArray<IModeloIA>);
+var
+  LModelo: IModeloIA;
+begin
+  ComboModelo.Clear;
+  for LModelo in AModelos do
+    ComboModelo.Items.Add(LModelo.Id);
+end;
+
+procedure TFormPrincipal.CarregarModelos;
+begin
+  ChatIA.Provedor := ProvedorOpenAI;
+  ChatIA.CarregarModelos;
+end;
+```
+
+Os componentes de provedor expõem `EndpointModelos`, permitindo usar gateways e proxies sem modificar os adaptadores. `ModeloPadrao` continua sendo definido pelo Daikit ou personalizado pelo desenvolvedor, pois as APIs não indicam um modelo padrão.
+
+Na OpenAI, a API mistura modelos de diferentes finalidades; o adaptador entrega somente identificadores das famílias de conversa reconhecidas. Na Gemini, são aceitos somente modelos que anunciam suporte a `generateContent`.
+
 ## Log
 
 `TChatIA` publica todos os registros de transporte pelo evento `AoRegistrarLog`. Não existe modo de log nem filtro interno: a aplicação que consome o evento decide quais registros mostrar ou persistir.
@@ -103,12 +129,21 @@ O objeto `IEventoLogIA` contém:
 
 - `DataHoraUTC`;
 - `Tipo`: `Requisicao`, `Resposta`, `Erro` ou `Cancelamento`;
-- `Nivel`: `Informacao` ou `Erro`;
+- `Nivel`: `Informacao`, `Requisicao`, `Resposta`, `RespostaErro` ou `Erro`;
 - `Provedor`;
 - `Mensagem`;
 - `StatusHTTP`, usando zero quando não houver resposta HTTP.
 
-Em requisições e respostas, `Mensagem` contém o JSON sanitizado. Em erros e cancelamentos, contém a mensagem correspondente.
+Em requisições e respostas, `Mensagem` contém o JSON sanitizado e o nível
+correspondente é, respectivamente, `Requisicao` ou `Resposta`. Uma resposta
+HTTP sem sucesso usa `RespostaErro`, preservando o JSON recebido e o
+`StatusHTTP`. Em erros sem resposta e cancelamentos, `Mensagem` contém a
+descrição correspondente.
+
+Quando um provedor devolve o campo `message` em um erro, o adaptador inclui seu
+conteúdo sanitizado em `Exception.Message` e na propriedade `MensagemAPI` da
+exceção específica. Chaves conhecidas, caracteres de controle e conteúdo além
+do limite de segurança são removidos antes da exposição.
 
 Adicione `Daikit.Aplicacao.Log` à cláusula `uses` da unit que declara o handler.
 
@@ -129,4 +164,4 @@ Os callbacks de log são enfileirados para a thread principal. O Daikit não gra
 
 ## Exemplo VCL
 
-Abra `examples\VCL.Conversa\Daikit.ExemploVCL.dproj`. Depois da instalação autocontida, o exemplo compila sem precisar apontar para `src`. O painel permite selecionar o nível mínimo exibido, limpar a visualização e mantém no máximo 300 linhas de log em memória.
+Abra `examples\VCL.Conversa\Daikit.ExemploVCL.dproj`. Depois da instalação autocontida, o exemplo compila sem precisar apontar para `src`. Cada evento recebido é incluído em um `TClientDataSet`, cujos campos são criados em tempo de execução e exibidos por um `TDBGrid`. O painel permite limpar a visualização e mantém no máximo 300 registros de log em memória.

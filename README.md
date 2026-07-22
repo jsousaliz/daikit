@@ -71,6 +71,14 @@ ChatIA.Enviar('Continue a conversa.');
 
 `Enviar` inicia uma operação assíncrona e retorna imediatamente, sem bloquear a VCL. Use `AoReceberResposta`, `AoOcorrerErro` e `AoConcluir` para acompanhar o resultado. `Cancelar` solicita o cancelamento da operação atual.
 
+Para carregar os modelos disponíveis do provedor selecionado, associe o evento `AoReceberModelos` e chame:
+
+```pascal
+ChatIA.CarregarModelos;
+```
+
+A consulta também é assíncrona. Cada provedor possui `EndpointModelos` configurável e mantém `ModeloPadrao` como alternativa quando `ChatIA.Modelo` estiver vazio.
+
 ## Credenciais
 
 Por padrão, os provedores procuram estas variáveis de ambiente:
@@ -89,6 +97,11 @@ Não coloque chaves em fontes, DFMs, argumentos de linha de comando ou arquivos 
 
 `TChatIA.AoRegistrarLog` recebe todos os registros produzidos pelo transporte. O objeto `IEventoLogIA` informa data e hora UTC, tipo, nível, provedor, mensagem e status HTTP.
 
+Os níveis são `Informacao`, `Requisicao`, `Resposta`, `RespostaErro` e `Erro`.
+JSON enviado usa `Requisicao`; JSON recebido com sucesso usa `Resposta`; JSON
+recebido com status HTTP 4xx ou 5xx usa `RespostaErro`. Assim, `Erro` fica
+reservado a falhas que não produziram uma resposta JSON.
+
 Para declarar o handler manualmente, inclua `Daikit.Aplicacao.Log` na cláusula `uses`.
 
 ```pascal
@@ -100,6 +113,9 @@ end;
 ```
 
 O Daikit não filtra nem persiste os eventos. A aplicação decide o que mostrar ou armazenar. O JSON preserva o conteúdo da conversa, mas credenciais e dados classificados como sigilosos são sanitizados automaticamente.
+
+Quando a API devolve um campo `message` em um erro, seu conteúdo sanitizado é
+incluído na exceção do adaptador e disponibilizado em `MensagemAPI`.
 
 ## Exemplo VCL
 
