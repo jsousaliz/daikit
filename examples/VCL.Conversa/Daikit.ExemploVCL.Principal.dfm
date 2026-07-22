@@ -47,7 +47,7 @@ object FormPrincipal: TFormPrincipal
     Top = 67
     Width = 608
     Height = 289
-    Anchors = [akLeft, akTop, akRight, akBottom]
+    Anchors = [akLeft, akTop, akRight]
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 3
@@ -72,7 +72,7 @@ object FormPrincipal: TFormPrincipal
     Top = 365
     Width = 418
     Height = 23
-    Anchors = [akLeft, akRight, akBottom]
+    Anchors = [akLeft, akTop, akRight]
     TabOrder = 4
   end
   object BotaoEnviar: TButton
@@ -80,7 +80,7 @@ object FormPrincipal: TFormPrincipal
     Top = 362
     Width = 88
     Height = 25
-    Anchors = [akRight, akBottom]
+    Anchors = [akTop, akRight]
     Caption = 'Enviar'
     Default = True
     TabOrder = 5
@@ -91,7 +91,7 @@ object FormPrincipal: TFormPrincipal
     Top = 440
     Width = 608
     Height = 104
-    Anchors = [akLeft, akRight, akBottom]
+    Anchors = [akLeft, akTop, akRight, akBottom]
     DataSource = DataSourceLog
     Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgTitleClick, dgTitleHotTrack]
     ReadOnly = True
@@ -113,13 +113,6 @@ object FormPrincipal: TFormPrincipal
         Expanded = False
         FieldName = 'Tipo'
         Width = 75
-        Visible = True
-      end
-      item
-        Expanded = False
-        FieldName = 'Nivel'
-        Title.Caption = 'N'#237'vel'
-        Width = 85
         Visible = True
       end
       item
@@ -156,7 +149,7 @@ object FormPrincipal: TFormPrincipal
     Top = 362
     Width = 88
     Height = 25
-    Anchors = [akRight, akBottom]
+    Anchors = [akTop, akRight]
     Caption = 'Limpar'
     Default = True
     TabOrder = 6
@@ -182,7 +175,6 @@ object FormPrincipal: TFormPrincipal
     Top = 16
     Width = 139
     Height = 23
-    Anchors = [akRight, akBottom]
     Caption = 'Carregar todos modelos'
     Default = True
     TabOrder = 9
@@ -220,12 +212,12 @@ object FormPrincipal: TFormPrincipal
   object ClientDataSetLog: TClientDataSet
     Aggregates = <>
     Params = <>
-    Left = 400
-    Top = 88
+    Left = 248
+    Top = 472
   end
   object DataSourceLog: TDataSource
     DataSet = ClientDataSetLog
-    Left = 464
-    Top = 88
+    Left = 312
+    Top = 472
   end
 end

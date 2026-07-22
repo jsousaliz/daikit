@@ -89,12 +89,10 @@ const
   CLimiteLinhasLogExemplo = 300;
   CCampoLogDataHoraUTC = 'DataHoraUTC';
   CCampoLogTipo = 'Tipo';
-  CCampoLogNivel = 'Nivel';
   CCampoLogProvedor = 'Provedor';
   CCampoLogMensagem = 'Mensagem';
   CCampoLogStatusHTTP = 'StatusHTTP';
   CTamanhoCampoTipoLog = 20;
-  CTamanhoCampoNivelLog = 20;
   CTamanhoCampoProvedorLog = 80;
   CFormatoDataHoraLog = 'yyyy-mm-dd hh:nn:ss.zzz';
 
@@ -202,8 +200,6 @@ begin
       AEvento.DataHoraUTC;
     ClientDataSetLog.FieldByName(CCampoLogTipo).AsString :=
       GetEnumName(TypeInfo(TTipoEventoLogIA), Ord(AEvento.Tipo));
-    ClientDataSetLog.FieldByName(CCampoLogNivel).AsString :=
-      GetEnumName(TypeInfo(TNivelLogIA), Ord(AEvento.Nivel));
     ClientDataSetLog.FieldByName(CCampoLogProvedor).AsString :=
       AEvento.Provedor;
     ClientDataSetLog.FieldByName(CCampoLogMensagem).AsString :=
@@ -264,8 +260,6 @@ begin
   ClientDataSetLog.FieldDefs.Clear;
   ClientDataSetLog.FieldDefs.Add(CCampoLogDataHoraUTC, ftDateTime);
   ClientDataSetLog.FieldDefs.Add(CCampoLogTipo, ftString, CTamanhoCampoTipoLog);
-  ClientDataSetLog.FieldDefs.Add(CCampoLogNivel, ftString,
-    CTamanhoCampoNivelLog);
   ClientDataSetLog.FieldDefs.Add(CCampoLogProvedor, ftString,
     CTamanhoCampoProvedorLog);
   ClientDataSetLog.FieldDefs.Add(CCampoLogMensagem, ftMemo);

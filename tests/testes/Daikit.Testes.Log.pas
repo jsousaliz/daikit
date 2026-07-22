@@ -143,12 +143,10 @@ var
 begin
   LDataHoraAntes := TTimeZone.Local.ToUniversalTime(Now);
   LEventoLog := TEventoLogIA.Create(TTipoEventoLogIA.Resposta,
-    TNivelLogIA.Resposta, CProvedorTeste, CJSONRespostaTeste,
-    CStatusTeste);
+    CProvedorTeste, CJSONRespostaTeste, CStatusTeste);
   LDataHoraDepois := TTimeZone.Local.ToUniversalTime(Now);
 
   Assert.IsTrue(LEventoLog.Tipo = TTipoEventoLogIA.Resposta);
-  Assert.IsTrue(LEventoLog.Nivel = TNivelLogIA.Resposta);
   Assert.AreEqual(CProvedorTeste, LEventoLog.Provedor);
   Assert.AreEqual(CJSONRespostaTeste, LEventoLog.Mensagem);
   Assert.IsTrue(LEventoLog.DataHoraUTC >= LDataHoraAntes);
@@ -192,12 +190,8 @@ begin
     LReceptorLogTeste.Quantidade);
   Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Tipo =
     TTipoEventoLogIA.Requisicao);
-  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Nivel =
-    TNivelLogIA.Requisicao);
   Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Tipo =
     TTipoEventoLogIA.Resposta);
-  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Nivel =
-    TNivelLogIA.Resposta);
   Assert.AreEqual(CJSONRequisicaoTeste,
     LReceptorLogTeste.Evento(CIndiceEventoRequisicao).Mensagem);
   Assert.AreEqual(CJSONRespostaTeste,
@@ -227,8 +221,8 @@ begin
     LReceptorLog, CProvedorTeste);
 
   Assert.IsTrue(LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP) = LRespostaHTTP);
-  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Nivel =
-    TNivelLogIA.RespostaErro);
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Tipo =
+    TTipoEventoLogIA.RespostaErro);
   Assert.AreEqual(CStatusErroTeste,
     LReceptorLogTeste.Evento(CIndiceEventoResultado).StatusHTTP);
 end;
@@ -346,7 +340,7 @@ begin
       LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP, LTokenCancelamento);
     end), EOperacaoCanceladaIA);
   Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoResultado).Tipo =
-    TTipoEventoLogIA.Cancelamento);
+    TTipoEventoLogIA.Erro);
 end;
 
 procedure TTestesLog.Transporte_DevePropagarFalhaDoReceptor;

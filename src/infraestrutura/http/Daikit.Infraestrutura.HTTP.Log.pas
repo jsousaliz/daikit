@@ -15,8 +15,8 @@ type
     FReceptorLog: IReceptorLogIA;
     FNomeProvedor: string;
     function Sanitizar(const AJSON: string): string;
-    procedure Publicar(ATipo: TTipoEventoLogIA; ANivel: TNivelLogIA;
-      const AMensagem: string; AStatusHTTP: Integer);
+    procedure Publicar(ATipo: TTipoEventoLogIA; const AMensagem: string;
+      AStatusHTTP: Integer);
   public
     constructor Create(const ATransporte: ITransporteHTTP;
       const AReceptor: IReceptorLogIA; const AProvedor: string = '');
@@ -51,40 +51,39 @@ function TTransporteHTTPComLog.Enviar(const ARequisicao: IRequisicaoHTTP;
   const ACancelamento: ITokenCancelamentoIA): IRespostaHTTP;
 var
   LMensagemLog: string;
-  LNivelLog: TNivelLogIA;
 begin
   if ARequisicao = nil then
     LMensagemLog := ''
   else
     LMensagemLog := Sanitizar(ARequisicao.Corpo);
-  Publicar(TTipoEventoLogIA.Requisicao, TNivelLogIA.Requisicao,
-    LMensagemLog, CStatusHTTPNaoInformado);
+  Publicar(TTipoEventoLogIA.Requisicao, LMensagemLog,
+    CStatusHTTPNaoInformado);
 
   try
     Result := FTransporteHTTP.Enviar(ARequisicao, ACancelamento);
     if Result = nil then
     begin
-      Publicar(TTipoEventoLogIA.Resposta, TNivelLogIA.Erro, '',
+      Publicar(TTipoEventoLogIA.RespostaErro, '',
         CStatusHTTPNaoInformado);
       Exit;
     end;
 
     if Result.FoiSucesso then
-      LNivelLog := TNivelLogIA.Resposta
+      Publicar(TTipoEventoLogIA.Resposta, Sanitizar(Result.Corpo),
+        Result.Status)
     else
-      LNivelLog := TNivelLogIA.RespostaErro;
-    Publicar(TTipoEventoLogIA.Resposta, LNivelLog, Sanitizar(Result.Corpo),
-      Result.Status);
+      Publicar(TTipoEventoLogIA.RespostaErro, Sanitizar(Result.Corpo),
+        Result.Status);
   except
     on E: EOperacaoCanceladaIA do
     begin
-      Publicar(TTipoEventoLogIA.Cancelamento, TNivelLogIA.Informacao,
-        E.Message, CStatusHTTPNaoInformado);
+      Publicar(TTipoEventoLogIA.Erro, E.Message,
+        CStatusHTTPNaoInformado);
       raise;
     end;
     on E: Exception do
     begin
-      Publicar(TTipoEventoLogIA.Erro, TNivelLogIA.Erro, E.Message,
+      Publicar(TTipoEventoLogIA.Erro, E.Message,
         CStatusHTTPNaoInformado);
       raise;
     end;
@@ -92,12 +91,12 @@ begin
 end;
 
 procedure TTransporteHTTPComLog.Publicar(ATipo: TTipoEventoLogIA;
-  ANivel: TNivelLogIA; const AMensagem: string; AStatusHTTP: Integer);
+  const AMensagem: string; AStatusHTTP: Integer);
 var
   LEventoLog: IEventoLogIA;
 begin
-  LEventoLog := TEventoLogIA.Create(ATipo, ANivel, FNomeProvedor,
-    AMensagem, AStatusHTTP);
+  LEventoLog := TEventoLogIA.Create(ATipo, FNomeProvedor, AMensagem,
+    AStatusHTTP);
   FReceptorLog.Registrar(LEventoLog);
 end;
 

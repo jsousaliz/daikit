@@ -91,12 +91,12 @@ Não coloque chaves em fontes, DFMs, argumentos de linha de comando ou arquivos 
 
 ## Log
 
-`TChatIA.AoRegistrarLog` recebe todos os registros produzidos pelo transporte. O objeto `IEventoLogIA` informa data e hora UTC, tipo, nível, provedor, mensagem e status HTTP.
+`TChatIA.AoRegistrarLog` recebe todos os registros produzidos pelo componente e pelo transporte. O objeto `IEventoLogIA` informa data e hora UTC, tipo, provedor, mensagem e status HTTP.
 
-Os níveis são `Informacao`, `Requisicao`, `Resposta`, `RespostaErro` e `Erro`.
+Os tipos são `Contexto`, `Requisicao`, `Resposta`, `RespostaErro` e `Erro`.
 JSON enviado usa `Requisicao`; JSON recebido com sucesso usa `Resposta`; JSON
-recebido com status HTTP 4xx ou 5xx usa `RespostaErro`. Assim, `Erro` fica
-reservado a falhas que não produziram uma resposta JSON.
+recebido com status HTTP sem sucesso usa `RespostaErro`. `Erro` registra a
+mensagem de uma exceção nos pontos em que o log já acompanha o transporte.
 
 Para declarar o handler manualmente, inclua `Daikit.Aplicacao.Log` na cláusula `uses`.
 
@@ -110,6 +110,9 @@ end;
 
 O Daikit não filtra nem persiste os eventos. A aplicação decide o que mostrar ou armazenar. O JSON preserva o conteúdo da conversa, mas credenciais e dados classificados como sigilosos são sanitizados automaticamente.
 
+`Requisicao`, `Resposta` e `RespostaErro` são exclusivos para JSON. Os registros
+de ciclo de vida, cancelamento e limpeza do histórico usam `Contexto`.
+
 Quando a API devolve um campo `message` em um erro, seu conteúdo sanitizado é
 incluído na exceção do adaptador e disponibilizado em `MensagemAPI`.
 
@@ -121,7 +124,7 @@ Abra [Daikit.ExemploVCL.dproj](examples/VCL.Conversa/Daikit.ExemploVCL.dproj). O
 - seleção do modelo;
 - histórico ou mensagem isolada;
 - uso de tokens retornado pelo provedor;
-- consumo e filtragem do evento de log.
+- consumo e exibição do evento de log em um `TDBGrid`.
 
 ## Testes
 

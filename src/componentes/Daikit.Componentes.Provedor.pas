@@ -49,6 +49,7 @@ type
     function TemChaveAPIEmMemoria: Boolean;
     function CriarAdaptador(
       const AReceptorLog: IReceptorLogIA = nil): IAdaptadorIA;
+    property NomeProvedor: string read ObterNomeProvedorLog;
   published
     property ChaveAPI: string read ObterChaveAPI write DefinirChaveAPI
       stored False;

@@ -128,17 +128,30 @@ Na OpenAI, a API mistura modelos de diferentes finalidades; o adaptador entrega 
 O objeto `IEventoLogIA` contém:
 
 - `DataHoraUTC`;
-- `Tipo`: `Requisicao`, `Resposta`, `Erro` ou `Cancelamento`;
-- `Nivel`: `Informacao`, `Requisicao`, `Resposta`, `RespostaErro` ou `Erro`;
+- `Tipo`: `Contexto`, `Requisicao`, `Resposta`, `RespostaErro` ou `Erro`;
 - `Provedor`;
 - `Mensagem`;
 - `StatusHTTP`, usando zero quando não houver resposta HTTP.
 
-Em requisições e respostas, `Mensagem` contém o JSON sanitizado e o nível
+Em requisições e respostas, `Mensagem` contém o JSON sanitizado e o tipo
 correspondente é, respectivamente, `Requisicao` ou `Resposta`. Uma resposta
 HTTP sem sucesso usa `RespostaErro`, preservando o JSON recebido e o
-`StatusHTTP`. Em erros sem resposta e cancelamentos, `Mensagem` contém a
-descrição correspondente.
+`StatusHTTP`. O tipo `Erro` registra a mensagem exibida quando uma exceção é
+capturada nos pontos em que o transporte já produz log.
+
+O tipo também registra o ciclo de vida das operações:
+
+- início e conclusão do envio de uma mensagem;
+- início e conclusão da consulta de modelos;
+- solicitação e conclusão de cancelamento;
+- limpeza de um histórico que possuía mensagens.
+
+`Requisicao`, `Resposta` e `RespostaErro` são usados exclusivamente para JSON.
+Início e conclusão de operações, eventos de cancelamento e limpeza usam
+`Contexto`. O início do envio informa o modelo e o modo de conversa, e a
+conclusão da consulta informa quantos modelos foram encontrados. A limpeza
+informa quantas mensagens foram removidas. Nenhum registro de limpeza é
+emitido quando o histórico já está vazio.
 
 Quando um provedor devolve o campo `message` em um erro, o adaptador inclui seu
 conteúdo sanitizado em `Exception.Message` e na propriedade `MensagemAPI` da
@@ -151,7 +164,7 @@ Adicione `Daikit.Aplicacao.Log` à cláusula `uses` da unit que declara o handle
 procedure TFormPrincipal.ChatIAAoRegistrarLog(Sender: TObject;
   const AEvento: IEventoLogIA);
 begin
-  if AEvento.Nivel = TNivelLogIA.Erro then
+  if AEvento.Tipo = TTipoEventoLogIA.Erro then
     MemoLog.Lines.Add('ERRO: ' + AEvento.Mensagem)
   else
     MemoLog.Lines.Add(AEvento.Mensagem);

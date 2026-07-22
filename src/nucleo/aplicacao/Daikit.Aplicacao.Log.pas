@@ -5,20 +5,17 @@ interface
 {$SCOPEDENUMS ON}
 
 type
-  TNivelLogIA = (Informacao, Erro, Requisicao, Resposta, RespostaErro);
-  TTipoEventoLogIA = (Requisicao, Resposta, Erro, Cancelamento);
+  TTipoEventoLogIA = (Contexto, Requisicao, Resposta, RespostaErro, Erro);
 
   IEventoLogIA = interface
-    ['{B98882BD-48A4-4372-8B95-D1EBA81D2CF6}']
+    ['{96D36126-1EFC-4C6B-9968-033FB3C44660}']
     function ObterDataHoraUTC: TDateTime;
     function ObterTipo: TTipoEventoLogIA;
-    function ObterNivel: TNivelLogIA;
     function ObterProvedor: string;
     function ObterMensagem: string;
     function ObterStatusHTTP: Integer;
     property DataHoraUTC: TDateTime read ObterDataHoraUTC;
     property Tipo: TTipoEventoLogIA read ObterTipo;
-    property Nivel: TNivelLogIA read ObterNivel;
     property Provedor: string read ObterProvedor;
     property Mensagem: string read ObterMensagem;
     property StatusHTTP: Integer read ObterStatusHTTP;
@@ -33,18 +30,16 @@ type
   private
     FDataHoraUTC: TDateTime;
     FTipoEventoLog: TTipoEventoLogIA;
-    FNivelLog: TNivelLogIA;
     FProvedor: string;
     FMensagem: string;
     FStatusHTTP: Integer;
     function ObterDataHoraUTC: TDateTime;
     function ObterTipo: TTipoEventoLogIA;
-    function ObterNivel: TNivelLogIA;
     function ObterProvedor: string;
     function ObterMensagem: string;
     function ObterStatusHTTP: Integer;
   public
-    constructor Create(ATipo: TTipoEventoLogIA; ANivel: TNivelLogIA;
+    constructor Create(ATipo: TTipoEventoLogIA;
       const AProvedor, AMensagem: string; AStatusHTTP: Integer);
   end;
 
@@ -55,13 +50,11 @@ uses
   System.DateUtils;
 
 constructor TEventoLogIA.Create(ATipo: TTipoEventoLogIA;
-  ANivel: TNivelLogIA; const AProvedor, AMensagem: string;
-  AStatusHTTP: Integer);
+  const AProvedor, AMensagem: string; AStatusHTTP: Integer);
 begin
   inherited Create;
   FDataHoraUTC := TTimeZone.Local.ToUniversalTime(Now);
   FTipoEventoLog := ATipo;
-  FNivelLog := ANivel;
   FProvedor := AProvedor;
   FMensagem := AMensagem;
   FStatusHTTP := AStatusHTTP;
@@ -75,11 +68,6 @@ end;
 function TEventoLogIA.ObterMensagem: string;
 begin
   Result := FMensagem;
-end;
-
-function TEventoLogIA.ObterNivel: TNivelLogIA;
-begin
-  Result := FNivelLog;
 end;
 
 function TEventoLogIA.ObterProvedor: string;

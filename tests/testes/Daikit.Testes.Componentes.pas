@@ -24,6 +24,7 @@ type
     FChatParaDestruir: TChatIA;
     FLogs: Integer;
     FUltimoLog: IEventoLogIA;
+    FEventosLog: TArray<IEventoLogIA>;
     FUltimaResposta: IRespostaChatIA;
     FUltimoErro: IErroChatIA;
     FThreadResposta: Cardinal;
@@ -79,6 +80,7 @@ type
     [Test] procedure Chat_DevePermitirDestruicaoNoEventoConclusao;
     [Test] procedure Chat_DeveLimparReferenciasDeComponentesDestruidos;
     [Test] procedure Chat_DevePublicarLogDoProvedor;
+    [Test] procedure Chat_DeveRegistrarLimpezaDoHistorico;
     [Test] procedure Chat_DeveRecusarSegundoEnvioEnquantoExecuta;
     [Test] procedure Chat_DeveCancelarOperacaoEmAndamento;
     [Test] procedure Chat_DestruicaoDuranteEnvioNaoDevePublicarCallbacks;
@@ -156,6 +158,8 @@ end;
 procedure TObservadorChatIA.AoLog(Sender: TObject;
   const AEvento: IEventoLogIA);
 begin
+  SetLength(FEventosLog, FLogs + 1);
+  FEventosLog[FLogs] := AEvento;
   Inc(FLogs);
   FThreadLog := GetCurrentThreadId;
   FUltimoLog := AEvento;
@@ -315,14 +319,26 @@ begin
     LChat.Enviar('pergunta que deve ficar visivel');
     AguardarConclusao(LObservador);
 
-    Assert.AreEqual(2, LObservador.FLogs);
+    Assert.AreEqual(4, LObservador.FLogs);
     Assert.IsNotNull(LObservador.FUltimoLog);
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Contexto),
+      Integer(LObservador.FEventosLog[0].Tipo));
+    Assert.IsTrue(LObservador.FEventosLog[0].Mensagem.Contains(
+      'Iniciando envio de mensagem'));
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Requisicao),
+      Integer(LObservador.FEventosLog[1].Tipo));
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Resposta),
+      Integer(LObservador.FEventosLog[2].Tipo));
+    Assert.IsTrue(LObservador.FEventosLog[2].Mensagem.Contains(
+      'Ola do OpenAI'));
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Contexto),
+      Integer(LObservador.FEventosLog[3].Tipo));
+    Assert.IsTrue(LObservador.FEventosLog[3].Mensagem.Contains(
+      'concluido com sucesso'));
     Assert.AreEqual(CNomeProvedorLogOpenAI,
       LObservador.FUltimoLog.Provedor);
-    Assert.IsTrue(LObservador.FUltimoLog.Mensagem.Contains(
-      'Ola do OpenAI'));
-    Assert.IsFalse(LObservador.FUltimoLog.Mensagem.Contains(
-      CChaveAPITeste));
+    for var LEventoLog in LObservador.FEventosLog do
+      Assert.IsFalse(LEventoLog.Mensagem.Contains(CChaveAPITeste));
     Assert.AreEqual(LThreadPrincipal, LObservador.FThreadLog);
   finally
     LObservador.Free;
@@ -381,6 +397,40 @@ begin
     Assert.AreEqual('EValidacaoDominioIA', LObservador.FUltimoErro.Classe);
     Assert.AreEqual(LThreadPrincipal, LObservador.FThreadErro);
     Assert.AreEqual(TEstadoChatIA.Ocioso, LChat.Estado);
+  finally
+    LObservador.Free;
+    LChat.Free;
+  end;
+end;
+
+procedure TTestesComponentes.Chat_DeveRegistrarLimpezaDoHistorico;
+var
+  LChat: TChatIA;
+  LAdaptadorFalso: IAdaptadorIA;
+  LObservador: TObservadorChatIA;
+begin
+  LChat := TChatIA.Create(nil);
+  LObservador := TObservadorChatIA.Create;
+  try
+    LAdaptadorFalso := TAdaptadorIAFalso.Create;
+    LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
+    LChat.Conversa := TConversaIA.Create(LChat);
+    LChat.AoRegistrarLog := LObservador.AoLog;
+    LChat.Conversa.AdicionarMensagemUsuario('primeira');
+    LChat.Conversa.AdicionarMensagemAssistente('segunda');
+
+    LChat.LimparHistorico;
+
+    Assert.AreEqual(1, LObservador.FLogs);
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Contexto),
+      Integer(LObservador.FUltimoLog.Tipo));
+    Assert.AreEqual('Falso', LObservador.FUltimoLog.Provedor);
+    Assert.IsTrue(LObservador.FUltimoLog.Mensagem.Contains(
+      'Mensagens removidas: 2'));
+    Assert.AreEqual(0, LChat.Conversa.Quantidade);
+
+    LChat.LimparHistorico;
+    Assert.AreEqual(1, LObservador.FLogs);
   finally
     LObservador.Free;
     LChat.Free;
@@ -496,12 +546,24 @@ begin
     LChat.Conversa := TConversaIA.Create(LChat);
     LChat.AoOcorrerErro := LObservador.AoErro;
     LChat.AoConcluir := LObservador.AoConcluir;
+    LChat.AoRegistrarLog := LObservador.AoLog;
     LChat.Enviar('cancelar');
     LChat.Cancelar;
     Assert.AreEqual(TEstadoChatIA.Cancelando, LChat.Estado);
     AguardarConclusao(LObservador);
     Assert.AreEqual(1, LObservador.FErros);
     Assert.AreEqual('EOperacaoCanceladaIA', LObservador.FUltimoErro.Classe);
+    Assert.AreEqual(3, LObservador.FLogs);
+    Assert.IsTrue(LObservador.FEventosLog[0].Mensagem.Contains(
+      'Iniciando envio de mensagem'));
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Contexto),
+      Integer(LObservador.FEventosLog[1].Tipo));
+    Assert.IsTrue(LObservador.FEventosLog[1].Mensagem.Contains(
+      'solicitado'));
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Contexto),
+      Integer(LObservador.FEventosLog[2].Tipo));
+    Assert.IsTrue(LObservador.FEventosLog[2].Mensagem.Contains(
+      'Operacao cancelada'));
     Assert.AreEqual(TEstadoChatIA.Ocioso, LChat.Estado);
   finally
     LObservador.Free;
@@ -524,12 +586,22 @@ begin
     LChat.Provedor := TProvedorIAFalso.Create(LChat, LAdaptadorFalso);
     LChat.AoReceberModelos := LObservador.AoModelos;
     LChat.AoConcluir := LObservador.AoConcluir;
+    LChat.AoRegistrarLog := LObservador.AoLog;
     LChat.CarregarModelos;
     Assert.AreEqual(TEstadoChatIA.CarregandoModelos, LChat.Estado);
     Assert.AreEqual(0, LObservador.FConclusoes);
     AguardarConclusao(LObservador);
     Assert.AreEqual(2, Integer(Length(LObservador.FModelos)));
     Assert.AreEqual('modelo-falso-1', LObservador.FModelos[0].Id);
+    Assert.AreEqual(2, LObservador.FLogs);
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Contexto),
+      Integer(LObservador.FEventosLog[0].Tipo));
+    Assert.IsTrue(LObservador.FEventosLog[0].Mensagem.Contains(
+      'Iniciando consulta'));
+    Assert.AreEqual(Integer(TTipoEventoLogIA.Contexto),
+      Integer(LObservador.FEventosLog[1].Tipo));
+    Assert.IsTrue(LObservador.FEventosLog[1].Mensagem.Contains(
+      'Modelos encontrados: 2'));
     Assert.AreEqual(LThreadPrincipal, LObservador.FThreadModelos);
     Assert.AreEqual(TEstadoChatIA.Ocioso, LChat.Estado);
   finally
@@ -756,6 +828,12 @@ begin
   LProvedorAnthropic := TProvedorAnthropic.Create(nil);
   LProvedorGemini := TProvedorGemini.Create(nil);
   try
+    Assert.AreEqual(CNomeProvedorLogOpenAI,
+      LProvedorOpenAI.NomeProvedor);
+    Assert.AreEqual(CNomeProvedorLogAnthropic,
+      LProvedorAnthropic.NomeProvedor);
+    Assert.AreEqual(CNomeProvedorLogGemini,
+      LProvedorGemini.NomeProvedor);
     Assert.AreEqual(CEndpointRespostasOpenAI, LProvedorOpenAI.Endpoint);
     Assert.AreEqual(CEndpointModelosOpenAI,
       LProvedorOpenAI.EndpointModelos);

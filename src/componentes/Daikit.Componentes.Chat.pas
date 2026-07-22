@@ -47,6 +47,7 @@ type
     function ObterContextoAtual: IContextoIA;
     function ObterAdaptadorAtual: IAdaptadorIA;
     function CriarReceptorLog: IReceptorLogIA;
+    function ObterNomeProvedorLog: string;
     function EstaDestruindo: Boolean;
     procedure EnfileirarEventoLog(const AEvento: IEventoLogIA);
     procedure FinalizarOperacao(const AResposta: IRespostaChatIA;
@@ -54,6 +55,8 @@ type
     procedure FinalizarModelos(const AModelos: TArray<IModeloIA>;
       const AErro: IErroChatIA);
     procedure RegistrarEventoLog(const AEvento: IEventoLogIA);
+    procedure RegistrarLog(ATipo: TTipoEventoLogIA;
+      const AMensagem: string);
   protected
     procedure Notification(AComponent: TComponent;
       Operation: TOperation); override;
@@ -89,8 +92,11 @@ implementation
 
 uses
   System.SyncObjs,
+  System.TypInfo,
   Daikit.Aplicacao.TokenCancelamento,
-  Daikit.Componentes.Excecoes;
+  Daikit.Componentes.Constantes,
+  Daikit.Componentes.Excecoes,
+  Daikit.Dominio.Excecoes;
 
 type
   TReceptorLogChat = class(TInterfacedObject, IReceptorLogIA)
@@ -152,10 +158,13 @@ end;
 
 procedure TChatIA.Cancelar;
 begin
-  if FTokenCancelamento <> nil then
+  if (FTokenCancelamento <> nil) and
+    (FEstado <> TEstadoChatIA.Cancelando) then
   begin
     FEstado := TEstadoChatIA.Cancelando;
     FTokenCancelamento.Cancelar;
+    RegistrarLog(TTipoEventoLogIA.Contexto,
+      CLogSolicitacaoCancelamento);
   end;
 end;
 
@@ -236,6 +245,8 @@ begin
   FEstado := TEstadoChatIA.CarregandoModelos;
   try
     FOperacaoModelos := TOperacaoModelosIA.Create(LDadosOperacaoModelos);
+    RegistrarLog(TTipoEventoLogIA.Contexto,
+      CLogInicioConsultaModelos);
     if Assigned(FAoIniciarRequisicao) then
       FAoIniciarRequisicao(Self);
     FOperacaoModelos.Start;
@@ -251,6 +262,7 @@ end;
 procedure TChatIA.Enviar(const ATexto: string);
 var
   LDadosOperacaoChat: TDadosOperacaoChatIA;
+  LModelo: string;
 begin
   if EstaDestruindo then
     raise EEstadoComponenteIA.Create(
@@ -278,6 +290,12 @@ begin
   FEstado := TEstadoChatIA.Executando;
   try
     FOperacaoChat := TOperacaoChatIA.Create(LDadosOperacaoChat);
+    LModelo := FModelo;
+    if LModelo = '' then
+      LModelo := FProvedor.ModeloPadrao;
+    RegistrarLog(TTipoEventoLogIA.Contexto,
+      Format(CLogInicioEnvioMensagem, [LModelo,
+        GetEnumName(TypeInfo(TModoConversaIA), Ord(FModoConversa))]));
     if Assigned(FAoIniciarRequisicao) then
       FAoIniciarRequisicao(Self);
     FOperacaoChat.Start;
@@ -308,9 +326,17 @@ begin
     begin
       if Assigned(FAoOcorrerErro) then
         FAoOcorrerErro(Self, AErro);
+      if SameText(AErro.Classe, EOperacaoCanceladaIA.ClassName) then
+        RegistrarLog(TTipoEventoLogIA.Contexto,
+          CLogConclusaoCancelamento);
     end
-    else if Assigned(FAoReceberResposta) then
-      FAoReceberResposta(Self, AResposta);
+    else
+    begin
+      if Assigned(FAoReceberResposta) then
+        FAoReceberResposta(Self, AResposta);
+      RegistrarLog(TTipoEventoLogIA.Contexto,
+        CLogConclusaoEnvioMensagem);
+    end;
   finally
     FTokenCancelamento := nil;
     FEstado := TEstadoChatIA.Ocioso;
@@ -333,9 +359,17 @@ begin
     begin
       if Assigned(FAoOcorrerErro) then
         FAoOcorrerErro(Self, AErro);
+      if SameText(AErro.Classe, EOperacaoCanceladaIA.ClassName) then
+        RegistrarLog(TTipoEventoLogIA.Contexto,
+          CLogConclusaoCancelamento);
     end
-    else if Assigned(FAoReceberModelos) then
-      FAoReceberModelos(Self, AModelos);
+    else
+    begin
+      if Assigned(FAoReceberModelos) then
+        FAoReceberModelos(Self, AModelos);
+      RegistrarLog(TTipoEventoLogIA.Contexto,
+        Format(CLogConclusaoConsultaModelos, [Length(AModelos)]));
+    end;
   finally
     FTokenCancelamento := nil;
     FEstado := TEstadoChatIA.Ocioso;
@@ -346,11 +380,17 @@ begin
 end;
 
 procedure TChatIA.LimparHistorico;
+var
+  LQuantidadeMensagens: Integer;
 begin
   if FEstado <> TEstadoChatIA.Ocioso then
     raise EEstadoComponenteIA.Create(
       'O historico nao pode ser limpo durante uma operacao do chat.');
-  ObterContextoAtual.Limpar;
+  LQuantidadeMensagens := ObterContextoAtual.Quantidade;
+  FConversa.Limpar;
+  if LQuantidadeMensagens > 0 then
+    RegistrarLog(TTipoEventoLogIA.Contexto,
+      Format(CLogHistoricoLimpo, [LQuantidadeMensagens]));
 end;
 
 procedure TChatIA.Notification(AComponent: TComponent;
@@ -393,10 +433,30 @@ begin
   Result := FProvedor.CriarAdaptador(CriarReceptorLog);
 end;
 
+function TChatIA.ObterNomeProvedorLog: string;
+begin
+  if FProvedor = nil then
+    Result := ''
+  else
+    Result := FProvedor.NomeProvedor;
+end;
+
 procedure TChatIA.RegistrarEventoLog(const AEvento: IEventoLogIA);
 begin
   if Assigned(FAoRegistrarLog) then
     FAoRegistrarLog(Self, AEvento);
+end;
+
+procedure TChatIA.RegistrarLog(ATipo: TTipoEventoLogIA;
+  const AMensagem: string);
+var
+  LEventoLog: IEventoLogIA;
+begin
+  if EstaDestruindo or not Assigned(FAoRegistrarLog) then
+    Exit;
+  LEventoLog := TEventoLogIA.Create(ATipo, ObterNomeProvedorLog,
+    AMensagem, CStatusHTTPNaoInformadoLog);
+  RegistrarEventoLog(LEventoLog);
 end;
 
 initialization
