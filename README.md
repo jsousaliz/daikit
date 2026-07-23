@@ -4,76 +4,172 @@ Biblioteca didática de componentes Delphi para conversar com diferentes provedo
 
 O projeto usa somente recursos nativos do Delphi, sem componentes de terceiros, Indy ou DLLs adicionais.
 
+O nome **Daikit** combina **D**, de Delphi, **AI**, de *Artificial Intelligence*, e **Kit**, por reunir em uma única suíte os componentes necessários para integrar aplicações Delphi a diferentes serviços de inteligência artificial.
+
+## Visão rápida
+
+Uma aplicação utiliza os componentes centrais do Daikit, escolhe um provedor e conversa com sua API sem precisar conhecer os contratos específicos de cada serviço.
+
+<p align="center">
+  <img src="documentacao/imagens/arquitetura-daikit.png" alt="Visão simplificada da arquitetura do Daikit" width="900">
+</p>
+
 ## Funcionalidades atuais
 
-- componentes não visuais para OpenAI, Anthropic e Google Gemini;
+- Componentes não visuais para OpenAI, Anthropic e Google Gemini;
 - troca de provedor sem alterar o código de conversa;
-- histórico compartilhável ou mensagens isoladas;
-- contratos JSON tipados com serialização automática por `REST.Json`;
-- transporte HTTPS nativo baseado em `THTTPClient`;
-- cancelamento cooperativo, timeouts e limites de resposta;
-- log de requisição, resposta, erro e cancelamento pelo evento `AoRegistrarLog`;
-- credenciais em memória ou variáveis de ambiente, sem persistência no DFM;
-- interfaces e injeção de dependência;
-- testes unitários DUnitX sem acesso à rede;
-- suporte a aplicações Win32 e Win64.
+- Envio e consulta de modelos assíncronos, sem bloquear a VCL;
+- Histórico compartilhável ou mensagens isoladas;
+- Contratos JSON tipados com serialização automática por `REST.Json`;
+- Transporte HTTPS nativo baseado em `THTTPClient`;
+- Cancelamento cooperativo, timeouts e limites de resposta;
+- Log de contexto, requisição, resposta e erros pelo evento `AoRegistrarLog`;
+- Credenciais em memória ou variáveis de ambiente, sem persistência no DFM;
+- Interfaces e injeção de dependência;
+- Testes unitários DUnitX sem acesso à rede;
+- Suporte a aplicações Win32 e Win64.
 
 ## Componentes
 
-- `TChatIA`: fachada usada pela aplicação para enviar mensagens.
-- `TConversaIA`: mantém e compartilha o histórico da conversa.
+- `TChatIA`: fachada para selecionar o provedor, carregar modelos, enviar mensagens e cancelar operações.
+- `TConversaIA`: mantém e compartilha o histórico, com eventos para acompanhar suas alterações.
 - `TProvedorOpenAI`: configura a integração com a OpenAI.
 - `TProvedorAnthropic`: configura a integração com a Anthropic.
 - `TProvedorGemini`: configura a integração com o Google Gemini.
 
-Os componentes são instalados na página **Daikit** da Tool Palette.
+Os cinco componentes aparecem na página **Daikit** da Tool Palette. O registro dos componentes não acessa a rede nem lê credenciais.
+
+<!-- CAPTURA_PALETA_INICIO -->
+<p align="center">
+  <img src="documentacao/imagens/pallete-daikit.png" alt="Componentes do Daikit na Tool Palette do Delphi">
+</p>
+<!-- CAPTURA_PALETA_FIM -->
 
 ## Requisitos
 
 - Delphi 12 Athens;
 - Windows;
-- plataforma Win32 ou Win64;
+- Plataforma Win32 ou Win64;
 - DUnitX fornecido com o Delphi para executar os testes.
 
 ## Instalação
 
-O instalador autocontido é gerado por:
+### Usando uma release
+
+1. Baixe o instalador e o respectivo arquivo `.sha256` na página de [releases do Daikit](https://github.com/jsousaliz/daikit/releases/latest).
+2. Se a release for a v0.1.0, por exemplo, confira o SHA-256 do executável:
+
+   ```powershell
+   Get-FileHash .\Daikit.Instalador-0.1.0.exe -Algorithm SHA256
+   ```
+
+3. Feche todas as instâncias do Delphi.
+4. Execute `Daikit.Instalador-[versao-release].exe`.
+5. Confirme que o instalador localizou o Delphi 12 e clique em **Instalar**.
+6. Abra o Delphi e confirme a página **Daikit** na Tool Palette.
+
+O instalador não possui assinatura digital. O Microsoft Defender SmartScreen pode informar que o aplicativo não é reconhecido. Prossiga somente se o arquivo tiver sido baixado da release oficial e o SHA-256 corresponder ao valor publicado.
+
+O instalador configura automaticamente:
+
+- BPLs de design e runtime Win32 em `$(BDSCOMMONDIR)\Bpl`;
+- BPL de runtime Win64 em `$(BDSCOMMONDIR)\Bpl\Win64`;
+- DCPs e DCUs em `$(BDSCOMMONDIR)\Dcp\Daikit\Win32` e `Win64`;
+- os diretórios Daikit no `Search Path` de cada plataforma, sem duplicá-los;
+- a BPL de design em `Known Packages` para o usuário atual.
+
+Não é necessário adicionar os fontes ao projeto ou ao `Search Path`. Quando **Link with runtime packages** estiver habilitado, as BPLs de runtime utilizadas pela aplicação também deverão ser distribuídas conforme as regras usuais do Delphi.
+
+### Gerando o instalador localmente
+
+Feche o Delphi e execute na raiz do repositório:
 
 ```powershell
 .\tools\instalador\Construir.ps1
 ```
 
-Ele instala os pacotes, DCPs e DCUs necessários para compilar aplicações sem adicionar os fontes ao `Search Path`.
+O processo:
 
-Consulte [Componentes e instalação](documentacao/COMPONENTES_E_INSTALACAO.md) para o procedimento completo de construção, instalação e desinstalação.
+1. compila `DaikitRuntimeD12` para Win32 e Win64;
+2. compila `DaikitDesignD12` para Win32;
+3. reúne BPLs, DCPs e DCUs por plataforma;
+4. incorpora esses arquivos ao instalador como um payload compactado;
+5. compila o instalador VCL em modo Release.
+
+O resultado fica em:
+
+```text
+tools\instalador\bin\Win32\Daikit.Instalador.exe
+```
+
+O executável é autocontido; os fontes e a pasta `packages` não precisam acompanhá-lo na distribuição.
+
+### Desinstalação
+
+1. Feche o Delphi.
+2. Execute novamente o instalador.
+3. Clique em **Desinstalar** e confirme.
+
+O processo remove o registro do pacote, os arquivos Daikit instalados e somente as entradas Daikit adicionadas ao `Search Path`.
 
 ## Uso básico
 
-Adicione ao formulário ou data module:
+Em tempo de design, coloque no formulário ou data module:
 
 - um `TChatIA`;
 - um `TConversaIA`;
 - os provedores que deseja utilizar.
 
-Configure `ChatIA.Conversa` e selecione o provedor:
+Aponte `ChatIA.Conversa`, escolha o provedor e envie a mensagem:
 
 ```pascal
+ChatIA.Conversa := ConversaIA;
 ChatIA.Provedor := ProvedorOpenAI;
 ChatIA.Enviar('Quem é você?');
+```
 
+Para continuar a mesma conversa em outro provedor:
+
+```pascal
 ChatIA.Provedor := ProvedorAnthropic;
 ChatIA.Enviar('Continue a conversa.');
 ```
 
-`Enviar` inicia uma operação assíncrona e retorna imediatamente, sem bloquear a VCL. Use `AoReceberResposta`, `AoOcorrerErro` e `AoConcluir` para acompanhar o resultado. `Cancelar` solicita o cancelamento da operação atual.
+`Enviar` inicia uma operação em uma thread de trabalho. A resposta é entregue em `AoReceberResposta`, falhas em `AoOcorrerErro` e o encerramento em `AoConcluir`. Os eventos são entregues na thread principal e podem atualizar controles VCL diretamente.
 
-Para carregar os modelos disponíveis do provedor selecionado, associe o evento `AoReceberModelos` e chame:
+Use `Cancelar` para solicitar o cancelamento. Um segundo envio é recusado enquanto `Estado` for `Executando` ou `Cancelando`.
+
+O padrão é `ModoConversa = ManterHistorico`. Use `MensagemIsolada` para não adicionar a troca ao histórico e `LimparHistorico` para iniciar uma nova conversa.
+
+`TConversaIA` também oferece:
+
+- `AoAdicionar`: recebe a mensagem adicionada;
+- `AoLimpar`: ocorre quando um histórico com conteúdo é limpo;
+- `AoAlterar`: sinaliza qualquer mudança efetiva no contexto.
+
+## Modelos disponíveis
+
+`TChatIA.CarregarModelos` consulta assincronamente o provedor selecionado. O resultado é entregue na thread principal por `AoReceberModelos`:
 
 ```pascal
-ChatIA.CarregarModelos;
+procedure TFormPrincipal.ChatIAAoReceberModelos(Sender: TObject;
+  const AModelos: TArray<IModeloIA>);
+var
+  LModelo: IModeloIA;
+begin
+  ComboModelo.Clear;
+  for LModelo in AModelos do
+    ComboModelo.Items.Add(LModelo.Id);
+end;
+
+procedure TFormPrincipal.CarregarModelos;
+begin
+  ChatIA.Provedor := ProvedorOpenAI;
+  ChatIA.CarregarModelos;
+end;
 ```
 
-A consulta também é assíncrona. Cada provedor possui `EndpointModelos` configurável e mantém `ModeloPadrao` como alternativa quando `ChatIA.Modelo` estiver vazio.
+Os componentes de provedor expõem `EndpointModelos`, permitindo usar gateways e proxies. `ModeloPadrao` é utilizado quando `ChatIA.Modelo` estiver vazio.
 
 ## Credenciais
 
@@ -85,20 +181,21 @@ ANTHROPIC_API_KEY
 GEMINI_API_KEY
 ```
 
-Também é possível informar `ChaveAPI` em tempo de execução. Seu valor é mascarado e nunca é gravado no DFM.
+Também é possível informar `ChaveAPI` em tempo de execução. Seu getter retorna uma máscara e a propriedade não é gravada no DFM.
 
 Não coloque chaves em fontes, DFMs, argumentos de linha de comando ou arquivos versionados. Se uma chave for exposta, revogue-a no provedor correspondente.
 
 ## Log
 
-`TChatIA.AoRegistrarLog` recebe todos os registros produzidos pelo componente e pelo transporte. O objeto `IEventoLogIA` informa data e hora UTC, tipo, provedor, mensagem e status HTTP.
+`TChatIA.AoRegistrarLog` recebe todos os registros produzidos pelo componente e pelo transporte. O objeto `IEventoLogIA` informa:
 
-Os tipos são `Contexto`, `Requisicao`, `Resposta`, `RespostaErro` e `Erro`.
-JSON enviado usa `Requisicao`; JSON recebido com sucesso usa `Resposta`; JSON
-recebido com status HTTP sem sucesso usa `RespostaErro`. `Erro` registra a
-mensagem de uma exceção nos pontos em que o log já acompanha o transporte.
+- `DataHoraUTC`;
+- `Tipo`: `Contexto`, `Requisicao`, `Resposta`, `RespostaErro` ou `Erro`;
+- `Provedor`;
+- `Mensagem`;
+- `StatusHTTP`.
 
-Para declarar o handler manualmente, inclua `Daikit.Aplicacao.Log` na cláusula `uses`.
+Para declarar o handler manualmente, inclua `Daikit.Aplicacao.Log` na cláusula `uses`:
 
 ```pascal
 procedure TFormPrincipal.ChatIAAoRegistrarLog(Sender: TObject;
@@ -108,13 +205,7 @@ begin
 end;
 ```
 
-O Daikit não filtra nem persiste os eventos. A aplicação decide o que mostrar ou armazenar. O JSON preserva o conteúdo da conversa, mas credenciais e dados classificados como sigilosos são sanitizados automaticamente.
-
-`Requisicao`, `Resposta` e `RespostaErro` são exclusivos para JSON. Os registros
-de ciclo de vida, cancelamento e limpeza do histórico usam `Contexto`.
-
-Quando a API devolve um campo `message` em um erro, seu conteúdo sanitizado é
-incluído na exceção do adaptador e disponibilizado em `MensagemAPI`.
+O Daikit não filtra nem persiste eventos. A aplicação decide o que mostrar ou armazenar. JSON, exceções e credenciais passam pela sanitização correspondente antes da exposição.
 
 ## Exemplo VCL
 
@@ -123,8 +214,14 @@ Abra [Daikit.ExemploVCL.dproj](examples/VCL.Conversa/Daikit.ExemploVCL.dproj). O
 - troca entre os três provedores;
 - seleção do modelo;
 - histórico ou mensagem isolada;
-- uso de tokens retornado pelo provedor;
-- consumo e exibição do evento de log em um `TDBGrid`.
+- uso das unidades retornadas pelo provedor;
+- consumo e exibição dos logs em um `TDBGrid`.
+
+<!-- CAPTURA_EXEMPLO_INICIO -->
+<p align="center">
+  <img src="documentacao/imagens/exemplo-daikit.png" alt="Aplicação VCL de exemplo do Daikit" width="900">
+</p>
+<!-- CAPTURA_EXEMPLO_FIM -->
 
 ## Testes
 
@@ -133,30 +230,20 @@ Abra [Daikit.Testes.dproj](tests/testes/Daikit.Testes.dproj), selecione Win32 ou
 Os executáveis são gerados em:
 
 ```text
-tests/bin/Win32/testes/Daikit.Testes.exe
-tests/bin/Win64/testes/Daikit.Testes.exe
+tests\bin\Win32\testes\Daikit.Testes.exe
+tests\bin\Win64\testes\Daikit.Testes.exe
 ```
 
-Os testes automatizados usam transportes falsos e não consomem APIs pagas.
-
-## Experimentos reais
-
-Os projetos em `tests/experiments` são separados da suíte automática. Uma chamada real só é executada quando a variável de autorização e a chave correspondente estão definidas:
-
-```text
-DAIKIT_EXECUTAR_OPENAI_REAL=1
-DAIKIT_EXECUTAR_ANTHROPIC_REAL=1
-DAIKIT_EXECUTAR_GEMINI_REAL=1
-```
-
-Esses experimentos podem consumir créditos. As variáveis `OPENAI_MODEL`, `ANTHROPIC_MODEL` e `GEMINI_MODEL` permitem substituir o modelo padrão sem alterar o fonte.
+Os testes automatizados usam transportes falsos e não consomem APIs pagas. O workflow de release compila e executa a suíte nas duas plataformas antes de publicar o instalador.
 
 ## Arquitetura
 
-O domínio trabalha apenas com contratos canônicos. Cada provedor implementa `IAdaptadorIA` e converte seus próprios objetos JSON para esses contratos. Assim, um novo provedor pode ser adicionado sem alterar o serviço de conversa nem os componentes existentes.
+O domínio trabalha apenas com contratos canônicos. Cada provedor implementa `IAdaptadorIA` e converte seus próprios contratos JSON. Assim, um novo provedor pode ser adicionado sem alterar o serviço de conversa nem os componentes existentes.
 
-O log HTTP usa um Decorator sobre `ITransporteHTTP`, mantendo a observabilidade separada dos adaptadores e do transporte nativo.
+O transporte HTTP nativo é isolado por interface e o log usa um Decorator sobre `ITransporteHTTP`, mantendo observabilidade e comunicação separadas dos adaptadores.
 
 ## Estado do projeto
 
-O chat textual com OpenAI, Anthropic e Gemini está implementado. Streaming, ferramentas, MCP, RAG, embeddings, áudio e geração de imagens permanecem como evoluções futuras.
+O chat textual com OpenAI, Anthropic e Gemini está implementado.
+
+Streaming, ferramentas, MCP, RAG, embeddings, áudio e geração de imagens permanecem como evoluções futuras.
