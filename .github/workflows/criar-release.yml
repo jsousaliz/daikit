@@ -1,0 +1,179 @@
+name: Criar release Daikit
+
+on:
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: 'Versao sem o prefixo v, por exemplo: 0.1.0'
+        required: true
+        type: string
+      modo_notas:
+        description: 'Origem das notas da release'
+        required: true
+        default: arquivo
+        type: choice
+        options:
+          - arquivo
+          - automaticas
+      publicar_release:
+        description: 'Criar a tag e publicar a release depois das validacoes'
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-daikit
+  cancel-in-progress: false
+
+jobs:
+  criar-release:
+    if: github.actor == 'jsousaliz' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, Windows, X64, delphi12]
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+
+    env:
+      VERSAO: ${{ inputs.versao }}
+      TAG: v${{ inputs.versao }}
+      GH_TOKEN: ${{ github.token }}
+      BDS: C:\Program Files (x86)\Embarcadero\Studio\23.0
+      BDSINCLUDE: C:\Program Files (x86)\Embarcadero\Studio\23.0\include
+      BDSCOMMONDIR: C:\Users\Public\Documents\Embarcadero\Studio\23.0
+
+    steps:
+      - name: Obter codigo-fonte
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validar solicitacao
+        shell: powershell
+        run: |
+          if ($env:VERSAO -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Versao invalida: $env:VERSAO. Use o formato 0.1.0."
+          }
+
+          if ($env:VERSAO -eq '0.0.0') {
+            throw 'A versao 0.0.0 e reservada para builds de desenvolvimento.'
+          }
+
+          $tagRemota = git ls-remote --tags origin "refs/tags/$env:TAG"
+          if ($tagRemota) {
+            throw "A tag $env:TAG ja existe."
+          }
+
+          if ('${{ inputs.modo_notas }}' -eq 'arquivo') {
+            $arquivoNotas = "documentacao\notas-de-versao\$env:TAG.md"
+            if (-not (Test-Path -LiteralPath $arquivoNotas -PathType Leaf)) {
+              throw "Arquivo de notas nao encontrado: $arquivoNotas"
+            }
+          }
+
+      - name: Compilar e executar testes Win32
+        shell: powershell
+        run: |
+          $msbuild = 'C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe'
+          $projeto = 'tests\testes\Daikit.Testes.dproj'
+
+          & $msbuild $projeto '/t:Build' '/p:Platform=Win32' '/p:Config=Release' '/nologo' '/verbosity:minimal'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Falha ao compilar os testes Win32.'
+          }
+
+          & '.\tests\bin\Win32\testes\Daikit.Testes.exe'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Os testes Win32 falharam com o codigo $LASTEXITCODE."
+          }
+
+      - name: Compilar e executar testes Win64
+        shell: powershell
+        run: |
+          $msbuild = 'C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe'
+          $projeto = 'tests\testes\Daikit.Testes.dproj'
+
+          & $msbuild $projeto '/t:Build' '/p:Platform=Win64' '/p:Config=Release' '/nologo' '/verbosity:minimal'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Falha ao compilar os testes Win64.'
+          }
+
+          & '.\tests\bin\Win64\testes\Daikit.Testes.exe'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Os testes Win64 falharam com o codigo $LASTEXITCODE."
+          }
+
+      - name: Construir instalador
+        shell: powershell
+        run: |
+          .\tools\instalador\Construir.ps1 -Versao $env:VERSAO
+
+      - name: Preparar artefatos
+        shell: powershell
+        run: |
+          $origem = 'tools\instalador\bin\Win32\Daikit.Instalador.exe'
+          $diretorioDestino = 'dist'
+          $nomeInstalador = "Daikit.Instalador-$env:VERSAO.exe"
+          $destino = Join-Path $diretorioDestino $nomeInstalador
+
+          if (-not (Test-Path -LiteralPath $origem -PathType Leaf)) {
+            throw "Instalador nao encontrado: $origem"
+          }
+
+          $informacoesVersao = [Diagnostics.FileVersionInfo]::GetVersionInfo(
+            (Resolve-Path -LiteralPath $origem).Path)
+          $versaoEsperadaArquivo = "$env:VERSAO.0"
+
+          if ($informacoesVersao.FileVersion -ne $versaoEsperadaArquivo) {
+            throw "FileVersion inesperada: $($informacoesVersao.FileVersion). Esperada: $versaoEsperadaArquivo."
+          }
+
+          if ($informacoesVersao.ProductVersion -ne $env:VERSAO) {
+            throw "ProductVersion inesperada: $($informacoesVersao.ProductVersion). Esperada: $env:VERSAO."
+          }
+
+          New-Item -ItemType Directory -Path $diretorioDestino -Force | Out-Null
+          Copy-Item -LiteralPath $origem -Destination $destino
+
+          $hash = (Get-FileHash -LiteralPath $destino -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $nomeInstalador" | Set-Content -LiteralPath "$destino.sha256" -Encoding Ascii
+
+          Write-Host "Instalador: $destino"
+          Write-Host "SHA-256: $hash"
+
+      - name: Armazenar artefatos da execucao
+        uses: actions/upload-artifact@v6
+        with:
+          name: Daikit-${{ inputs.versao }}
+          path: |
+            dist/Daikit.Instalador-${{ inputs.versao }}.exe
+            dist/Daikit.Instalador-${{ inputs.versao }}.exe.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publicar release
+        if: inputs.publicar_release
+        shell: powershell
+        run: |
+          $instalador = "dist\Daikit.Instalador-$env:VERSAO.exe"
+          $checksum = "$instalador.sha256"
+          $argumentos = @(
+            'release', 'create', $env:TAG,
+            $instalador,
+            $checksum,
+            '--target', '${{ github.sha }}',
+            '--title', "Daikit $env:TAG",
+            '--fail-on-no-commits'
+          )
+
+          if ('${{ inputs.modo_notas }}' -eq 'arquivo') {
+            $argumentos += @('--notes-file', "documentacao\notas-de-versao\$env:TAG.md")
+          }
+          else {
+            $argumentos += '--generate-notes'
+          }
+
+          & gh @argumentos
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao publicar a release $env:TAG."
+          }
