@@ -1,0 +1,45 @@
+name: Testar runner Delphi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testar-runner:
+    if: github.actor == 'jsousaliz'
+    runs-on: [self-hosted, Windows, X64, delphi12]
+    timeout-minutes: 10
+
+    steps:
+      - name: Exibir informações do runner
+        shell: powershell
+        run: |
+          Write-Host "Usuario: $env:USERNAME"
+          Write-Host "Computador: $env:COMPUTERNAME"
+          Write-Host "Diretorio: $PWD"
+
+      - name: Verificar Delphi 12
+        shell: powershell
+        run: |
+          $delphi = 'C:\Program Files (x86)\Embarcadero\Studio\23.0'
+          $dcc32 = Join-Path $delphi 'bin\dcc32.exe'
+          $dcc64 = Join-Path $delphi 'bin\dcc64.exe'
+          $msbuild = 'C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe'
+
+          if (-not (Test-Path -LiteralPath $dcc32)) {
+            throw "Compilador Win32 não encontrado: $dcc32"
+          }
+
+          if (-not (Test-Path -LiteralPath $dcc64)) {
+            throw "Compilador Win64 não encontrado: $dcc64"
+          }
+
+          if (-not (Test-Path -LiteralPath $msbuild)) {
+            throw "MSBuild não encontrado: $msbuild"
+          }
+
+          Write-Host 'Delphi 12 Win32 encontrado.'
+          Write-Host 'Delphi 12 Win64 encontrado.'
+          Write-Host 'MSBuild encontrado.'
