@@ -52,7 +52,7 @@ uses
 const
   CChaveOpenAITeste = 'sk-chave-falsa-de-teste';
   CRespostaModelosOpenAITeste =
-    '{"data":[{"id":"gpt-5.6","owned_by":"openai"},' +
+    '{"data":[{"id":"gpt-5.6-sol","owned_by":"openai"},' +
     '{"id":"text-embedding-3-small","owned_by":"openai"}]}';
 
 function CriarRequisicao(const AModelo: string = 'modelo-explicito';
@@ -118,7 +118,7 @@ begin
     RespostaHTTP(200, CRespostaModelosOpenAITeste));
   LModelos := LAdaptador.ListarModelos;
   Assert.AreEqual(1, Integer(Length(LModelos)));
-  Assert.AreEqual('gpt-5.6', LModelos[0].Id);
+  Assert.AreEqual('gpt-5.6-sol', LModelos[0].Id);
   Assert.AreEqual(CEndpointModelosOpenAI,
     LTransporteHTTPFalso.UltimaRequisicao.URL);
   Assert.IsTrue(LTransporteHTTPFalso.UltimaRequisicao.Metodo =

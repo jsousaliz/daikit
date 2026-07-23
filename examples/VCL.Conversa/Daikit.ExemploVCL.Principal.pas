@@ -74,7 +74,7 @@ type
     procedure SelecionarModoConversa;
     procedure PreencherModeloPadrao;
     procedure LimparChat;
-    procedure RegistrarMensagem(const AMensagem: string;
+    procedure RegistrarMensagem(const AEmissor, AMensagem: string;
       const Args: array of const);
   end;
 
@@ -98,18 +98,18 @@ const
 
 procedure TFormPrincipal.BotaoEnviarClick(Sender: TObject);
 var
-  LTexto: string;
+  LMensagem: string;
 begin
-  LTexto := Trim(EditMensagem.Text);
-  if LTexto = '' then
+  LMensagem := Trim(EditMensagem.Text);
+  if LMensagem = '' then
     Exit;
 
   SelecionarProvedor;
-  RegistrarMensagem('Você: %s', [LTexto]);
+  RegistrarMensagem('Você', LMensagem, []);
   EditMensagem.Clear;
 
   try
-    ChatIA.Enviar(LTexto);
+    ChatIA.Enviar(LMensagem);
   except
     on E: Exception do
       MemoConversa.Lines.Add('Erro: ' + E.Message);
@@ -161,7 +161,8 @@ procedure TFormPrincipal.ChatIAAoOcorrerErro(Sender: TObject;
   const AErro: IErroChatIA);
 begin
   if AErro <> nil then
-    RegistrarMensagem('Erro (%s): %s', [AErro.Classe, AErro.Mensagem]);
+    RegistrarMensagem('Erro', '%s;%s', [sLineBreak, AErro.Classe,
+      AErro.Mensagem]);
 end;
 
 procedure TFormPrincipal.ChatIAAoReceberModelos(Sender: TObject;
@@ -219,8 +220,7 @@ procedure TFormPrincipal.ChatIAAoReceberResposta(Sender: TObject;
 var
   LDetalhesUso: string;
 begin
-  RegistrarMensagem('%s: %s', [ComboProvedor.Text,
-    AResposta.Mensagem.Texto]);
+  RegistrarMensagem(ComboProvedor.Text, AResposta.Mensagem.Texto, []);
   LDetalhesUso := 'não informado pelo provedor';
   if AResposta.Uso <> nil then
     LDetalhesUso := Format('%d entrada | %d saída | %d tokens', [
@@ -286,13 +286,13 @@ begin
   end;
 end;
 
-procedure TFormPrincipal.RegistrarMensagem(const AMensagem: string;
+procedure TFormPrincipal.RegistrarMensagem(const AEmissor, AMensagem: string;
   const Args: array of const);
-const
-  CTamanhoSeparador = 115;
 begin
+  MemoConversa.Lines.Add(AEmissor);
   MemoConversa.Lines.Add(Format(AMensagem, Args));
-  MemoConversa.Lines.Add(StringOfChar('-', CTamanhoSeparador));
+  MemoConversa.Lines.Add('----------');
+  MemoConversa.Lines.Add(EmptyStr);
 end;
 
 procedure TFormPrincipal.LimparChat;

@@ -5,7 +5,7 @@ interface
 const
   CEndpointRespostasOpenAI = 'https://api.openai.com/v1/responses';
   CEndpointModelosOpenAI = 'https://api.openai.com/v1/models';
-  CModeloOpenAIRecomendado = 'gpt-5.6';
+  CModeloOpenAIRecomendado = 'gpt-5.6-sol';
   CVariavelAmbienteChaveOpenAI = 'OPENAI_API_KEY';
   CCabecalhoAutorizacao = 'Authorization';
   CCabecalhoTipoConteudo = 'Content-Type';

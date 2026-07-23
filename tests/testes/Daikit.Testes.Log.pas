@@ -12,6 +12,7 @@ type
     [Test] procedure Evento_DevePreservarDadosImutaveis;
     [Test] procedure Transporte_DeveExigirReceptor;
     [Test] procedure Transporte_DeveRegistrarRequisicaoEResposta;
+    [Test] procedure Transporte_NaoDeveRegistrarRequisicaoSemCorpo;
     [Test] procedure Transporte_DeveRegistrarRespostaHTTPDeErro;
     [Test] procedure Transporte_DeveSanitizarSegredosEPreservarConteudo;
     [Test] procedure Transporte_DeveTratarJSONInvalido;
@@ -45,6 +46,8 @@ const
   CQuantidadeCabecalhosTeste = 1;
   CIndiceCabecalhoTeste = 0;
   CQuantidadeEventosLogSucesso = 2;
+  CQuantidadeEventosLogSemCorpo = 1;
+  CIndiceEventoUnico = 0;
   CIndiceEventoRequisicao = 0;
   CIndiceEventoResultado = 1;
   CJSONRequisicaoTeste = '{' + #34 + 'entrada' + #34 + ':true}';
@@ -198,6 +201,32 @@ begin
     LReceptorLogTeste.Evento(CIndiceEventoResultado).Mensagem);
   Assert.AreEqual(CStatusTeste,
     LReceptorLogTeste.Evento(CIndiceEventoResultado).StatusHTTP);
+end;
+
+procedure TTestesLog.Transporte_NaoDeveRegistrarRequisicaoSemCorpo;
+var
+  LTransporteHTTPFalso: TTransporteHTTPFalso;
+  LTransporteHTTPBase: ITransporteHTTP;
+  LTransporteHTTPComLog: ITransporteHTTP;
+  LReceptorLogTeste: TReceptorLogTeste;
+  LReceptorLog: IReceptorLogIA;
+begin
+  LTransporteHTTPFalso := TTransporteHTTPFalso.Create;
+  LTransporteHTTPBase := LTransporteHTTPFalso;
+  LTransporteHTTPFalso.ProgramarResposta(CriarRespostaHTTP);
+  LReceptorLogTeste := TReceptorLogTeste.Create;
+  LReceptorLog := LReceptorLogTeste;
+  LTransporteHTTPComLog := TTransporteHTTPComLog.Create(LTransporteHTTPBase,
+    LReceptorLog, CProvedorTeste);
+
+  LTransporteHTTPComLog.Enviar(CriarRequisicaoHTTP(''));
+
+  Assert.AreEqual(CQuantidadeEventosLogSemCorpo,
+    LReceptorLogTeste.Quantidade);
+  Assert.IsTrue(LReceptorLogTeste.Evento(CIndiceEventoUnico).Tipo =
+    TTipoEventoLogIA.Resposta);
+  Assert.AreEqual(CJSONRespostaTeste,
+    LReceptorLogTeste.Evento(CIndiceEventoUnico).Mensagem);
 end;
 
 procedure TTestesLog.Transporte_DeveRegistrarRespostaHTTPDeErro;

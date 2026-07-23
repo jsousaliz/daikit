@@ -49,15 +49,10 @@ end;
 
 function TTransporteHTTPComLog.Enviar(const ARequisicao: IRequisicaoHTTP;
   const ACancelamento: ITokenCancelamentoIA): IRespostaHTTP;
-var
-  LMensagemLog: string;
 begin
-  if ARequisicao = nil then
-    LMensagemLog := ''
-  else
-    LMensagemLog := Sanitizar(ARequisicao.Corpo);
-  Publicar(TTipoEventoLogIA.Requisicao, LMensagemLog,
-    CStatusHTTPNaoInformado);
+  if (ARequisicao <> nil) and (Trim(ARequisicao.Corpo) <> '') then
+    Publicar(TTipoEventoLogIA.Requisicao, Sanitizar(ARequisicao.Corpo),
+      CStatusHTTPNaoInformado);
 
   try
     Result := FTransporteHTTP.Enviar(ARequisicao, ACancelamento);

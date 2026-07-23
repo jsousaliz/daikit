@@ -11,7 +11,7 @@ O nome **Daikit** combina **D**, de Delphi, **AI**, de *Artificial Intelligence*
 Uma aplicação utiliza os componentes centrais do Daikit, escolhe um provedor e conversa com sua API sem precisar conhecer os contratos específicos de cada serviço.
 
 <p align="center">
-  <img src="documentacao/imagens/arquitetura-daikit.png" alt="Visão simplificada da arquitetura do Daikit" width="900">
+  <img src="documentacao/imagens/arquitetura-daikit.png" alt="Visão simplificada da arquitetura do Daikit" width="600">
 </p>
 
 ## Funcionalidades atuais
@@ -39,11 +39,9 @@ Uma aplicação utiliza os componentes centrais do Daikit, escolhe um provedor e
 
 Os cinco componentes aparecem na página **Daikit** da Tool Palette. O registro dos componentes não acessa a rede nem lê credenciais.
 
-<!-- CAPTURA_PALETA_INICIO -->
 <p align="center">
   <img src="documentacao/imagens/pallete-daikit.png" alt="Componentes do Daikit na Tool Palette do Delphi">
 </p>
-<!-- CAPTURA_PALETA_FIM -->
 
 ## Requisitos
 
@@ -75,8 +73,8 @@ O instalador configura automaticamente:
 - BPLs de design e runtime Win32 em `$(BDSCOMMONDIR)\Bpl`;
 - BPL de runtime Win64 em `$(BDSCOMMONDIR)\Bpl\Win64`;
 - DCPs e DCUs em `$(BDSCOMMONDIR)\Dcp\Daikit\Win32` e `Win64`;
-- os diretórios Daikit no `Search Path` de cada plataforma, sem duplicá-los;
-- a BPL de design em `Known Packages` para o usuário atual.
+- Os diretórios Daikit no `Search Path` de cada plataforma, sem duplicá-los;
+- A BPL de design em `Known Packages` para o usuário atual.
 
 Não é necessário adicionar os fontes ao projeto ou ao `Search Path`. Quando **Link with runtime packages** estiver habilitado, as BPLs de runtime utilizadas pela aplicação também deverão ser distribuídas conforme as regras usuais do Delphi.
 
@@ -90,11 +88,11 @@ Feche o Delphi e execute na raiz do repositório:
 
 O processo:
 
-1. compila `DaikitRuntimeD12` para Win32 e Win64;
-2. compila `DaikitDesignD12` para Win32;
-3. reúne BPLs, DCPs e DCUs por plataforma;
-4. incorpora esses arquivos ao instalador como um payload compactado;
-5. compila o instalador VCL em modo Release.
+1. Compila `DaikitRuntimeD12` para Win32 e Win64;
+2. Compila `DaikitDesignD12` para Win32;
+3. Reúne BPLs, DCPs e DCUs por plataforma;
+4. Incorpora esses arquivos ao instalador como um payload compactado;
+5. Compila o instalador VCL em modo Release.
 
 O resultado fica em:
 
@@ -116,9 +114,9 @@ O processo remove o registro do pacote, os arquivos Daikit instalados e somente 
 
 Em tempo de design, coloque no formulário ou data module:
 
-- um `TChatIA`;
-- um `TConversaIA`;
-- os provedores que deseja utilizar.
+- Um `TChatIA`;
+- Um `TConversaIA`;
+- Os provedores que deseja utilizar.
 
 Aponte `ChatIA.Conversa`, escolha o provedor e envie a mensagem:
 
@@ -211,17 +209,15 @@ O Daikit não filtra nem persiste eventos. A aplicação decide o que mostrar ou
 
 Abra [Daikit.ExemploVCL.dproj](examples/VCL.Conversa/Daikit.ExemploVCL.dproj). O exemplo demonstra:
 
-- troca entre os três provedores;
-- seleção do modelo;
-- histórico ou mensagem isolada;
-- uso das unidades retornadas pelo provedor;
-- consumo e exibição dos logs em um `TDBGrid`.
+- Troca entre os três provedores;
+- Seleção do modelo;
+- Histórico ou mensagem isolada;
+- Uso das unidades retornadas pelo provedor;
+- Consumo e exibição dos logs em um `TDBGrid`.
 
-<!-- CAPTURA_EXEMPLO_INICIO -->
 <p align="center">
-  <img src="documentacao/imagens/exemplo-daikit.png" alt="Aplicação VCL de exemplo do Daikit" width="900">
+  <img src="documentacao/imagens/exemplo-daikit.png" alt="Aplicação VCL de exemplo do Daikit">
 </p>
-<!-- CAPTURA_EXEMPLO_FIM -->
 
 ## Testes
 

@@ -2,8 +2,8 @@ object FormPrincipal: TFormPrincipal
   Left = 0
   Top = 0
   Caption = 'Daikit - Conversa com IA'
-  ClientHeight = 560
-  ClientWidth = 640
+  ClientHeight = 611
+  ClientWidth = 834
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,12 +13,12 @@ object FormPrincipal: TFormPrincipal
   Position = poScreenCenter
   OnCreate = FormCreate
   DesignSize = (
-    640
-    560)
+    834
+    611)
   TextHeight = 15
   object LabelLog: TLabel
     Left = 16
-    Top = 416
+    Top = 394
     Width = 20
     Height = 15
     Anchors = [akLeft, akBottom]
@@ -32,12 +32,13 @@ object FormPrincipal: TFormPrincipal
     Caption = '-'
   end
   object BotaoLimparLog: TButton
-    Left = 536
-    Top = 407
+    Left = 728
+    Top = 384
     Width = 88
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Limpar log'
+    Default = True
     TabOrder = 8
     TabStop = False
     OnClick = BotaoLimparLogClick
@@ -45,9 +46,9 @@ object FormPrincipal: TFormPrincipal
   object MemoConversa: TMemo
     Left = 16
     Top = 67
-    Width = 608
-    Height = 289
-    Anchors = [akLeft, akTop, akRight]
+    Width = 800
+    Height = 260
+    Anchors = [akLeft, akTop, akRight, akBottom]
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 3
@@ -69,18 +70,18 @@ object FormPrincipal: TFormPrincipal
   end
   object EditMensagem: TEdit
     Left = 16
-    Top = 365
-    Width = 418
+    Top = 341
+    Width = 610
     Height = 23
-    Anchors = [akLeft, akTop, akRight]
+    Anchors = [akLeft, akRight, akBottom]
     TabOrder = 4
   end
   object BotaoEnviar: TButton
-    Left = 442
-    Top = 362
+    Left = 634
+    Top = 340
     Width = 88
     Height = 25
-    Anchors = [akTop, akRight]
+    Anchors = [akRight, akBottom]
     Caption = 'Enviar'
     Default = True
     TabOrder = 5
@@ -88,10 +89,10 @@ object FormPrincipal: TFormPrincipal
   end
   object DBGridLog: TDBGrid
     Left = 16
-    Top = 440
-    Width = 608
-    Height = 104
-    Anchors = [akLeft, akTop, akRight, akBottom]
+    Top = 416
+    Width = 800
+    Height = 175
+    Anchors = [akLeft, akRight, akBottom]
     DataSource = DataSourceLog
     Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgTitleClick, dgTitleHotTrack]
     ReadOnly = True
@@ -124,7 +125,7 @@ object FormPrincipal: TFormPrincipal
       item
         Expanded = False
         FieldName = 'Mensagem'
-        Width = 500
+        Width = 430
         Visible = True
       end
       item
@@ -145,11 +146,11 @@ object FormPrincipal: TFormPrincipal
     OnChange = ComboModeloChange
   end
   object ButtonLimpar: TButton
-    Left = 536
-    Top = 362
+    Left = 728
+    Top = 340
     Width = 88
     Height = 25
-    Anchors = [akTop, akRight]
+    Anchors = [akRight, akBottom]
     Caption = 'Limpar'
     Default = True
     TabOrder = 6
