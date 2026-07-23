@@ -18,13 +18,16 @@ type
     LabelEstado: TLabel;
     LabelIntroducao: TLabel;
     LabelPlataformas: TLabel;
+    LabelSaibaMais: TLabel;
     LabelTitulo: TLabel;
+    LabelVersao: TLabel;
     MemoLog: TMemo;
     PanelCabecalho: TPanel;
     procedure ButtonDesinstalarClick(Sender: TObject);
     procedure ButtonInstalarClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure LabelSaibaMaisClick(Sender: TObject);
   strict private
     FServicoInstalacaoDaikit: TServicoInstalacaoDaikit;
     procedure AtualizarTela;
@@ -39,6 +42,9 @@ implementation
 uses
   System.SysUtils,
   System.UITypes,
+  Winapi.ShellAPI,
+  Winapi.Windows,
+  Daikit.Instalador.Informacoes,
   Vcl.Dialogs;
 
 {$R *.dfm}
@@ -95,9 +101,16 @@ end;
 
 procedure TFormInstalador.FormCreate(Sender: TObject);
 begin
+  LabelVersao.Caption := 'Versao ' + ObterVersaoInstalador;
   FServicoInstalacaoDaikit := TServicoInstalacaoDaikit.Create;
   RegistrarLog('Instalador autocontido iniciado.');
   AtualizarTela;
+end;
+
+procedure TFormInstalador.LabelSaibaMaisClick(Sender: TObject);
+begin
+  ShellExecute(Handle, 'open', PChar(URL_REPOSITORIO_DAIKIT), nil, nil,
+    SW_SHOWNORMAL);
 end;
 
 procedure TFormInstalador.FormDestroy(Sender: TObject);

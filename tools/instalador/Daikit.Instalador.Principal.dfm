@@ -1,6 +1,7 @@
 object FormInstalador: TFormInstalador
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Instalador Daikit'
   ClientHeight = 390
@@ -50,6 +51,39 @@ object FormInstalador: TFormInstalador
       Font.Name = 'Segoe UI'
       Font.Style = []
       ParentFont = False
+    end
+    object LabelVersao: TLabel
+      Left = 512
+      Top = 17
+      Width = 144
+      Height = 17
+      Alignment = taRightJustify
+      AutoSize = False
+      Caption = 'Versao 0.0.0'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Segoe UI Semibold'
+      Font.Style = []
+      ParentFont = False
+    end
+    object LabelSaibaMais: TLabel
+      Left = 561
+      Top = 53
+      Width = 95
+      Height = 17
+      Alignment = taRightJustify
+      AutoSize = False
+      Caption = 'Saiba mais'
+      Cursor = crHandPoint
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Segoe UI'
+      Font.Style = [fsUnderline]
+      ParentFont = False
+      Transparent = True
+      OnClick = LabelSaibaMaisClick
     end
   end
   object LabelEstado: TLabel

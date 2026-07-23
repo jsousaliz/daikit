@@ -16,6 +16,13 @@
     <DCC_DcuOutput>bin\Win32\dcu</DCC_DcuOutput>
     <DCC_ExeOutput>bin\Win32</DCC_ExeOutput>
     <DCC_ForceExecute>false</DCC_ForceExecute>
+    <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+    <VerInfo_MajorVer>0</VerInfo_MajorVer>
+    <VerInfo_MinorVer>0</VerInfo_MinorVer>
+    <VerInfo_Release>0</VerInfo_Release>
+    <VerInfo_Build>0</VerInfo_Build>
+    <VerInfo_Locale>1046</VerInfo_Locale>
+    <VerInfo_Keys>CompanyName=Daikit;FileDescription=Instalador dos componentes Daikit para Delphi 12;FileVersion=$(VerInfo_MajorVer).$(VerInfo_MinorVer).$(VerInfo_Release).$(VerInfo_Build);InternalName=Daikit.Instalador;LegalCopyright=;LegalTrademarks=;OriginalFilename=Daikit.Instalador.exe;ProductName=Daikit;ProductVersion=$(VerInfo_MajorVer).$(VerInfo_MinorVer).$(VerInfo_Release);Comments=</VerInfo_Keys>
     <SanitizedProjectName>DaikitInstalador</SanitizedProjectName>
     <DCC_DependencyCheckOutputName>bin\Win32\Daikit.Instalador.exe</DCC_DependencyCheckOutputName>
   </PropertyGroup>
@@ -41,6 +48,7 @@
   <ItemGroup>
     <DelphiCompile Include="$(MainSource)"><MainSource>MainSource</MainSource></DelphiCompile>
     <DCCReference Include="Daikit.Instalador.Principal.pas"><Form>FormInstalador</Form><FormType>dfm</FormType></DCCReference>
+    <DCCReference Include="Daikit.Instalador.Informacoes.pas"/>
     <DCCReference Include="Daikit.Instalador.Servico.pas"/>
     <BuildConfiguration Include="Base"><Key>Base</Key></BuildConfiguration>
     <BuildConfiguration Include="Debug"><Key>Cfg_Debug</Key><CfgParent>Base</CfgParent></BuildConfiguration>

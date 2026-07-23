@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param()
+param(
+  [ValidatePattern('^\d+\.\d+\.\d+$')]
+  [string]$Versao = '0.0.0'
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -10,6 +13,7 @@ $DiretorioPayload = Join-Path $DiretorioScript 'payload'
 $DiretorioEstagio = Join-Path $DiretorioPayload 'estagio'
 $ArquivoZip = Join-Path $DiretorioPayload 'Daikit.Delphi12.zip'
 $ArquivoRecurso = Join-Path $DiretorioScript 'Daikit.Instalador.Payload.res'
+$ArquivoRecursoManifesto = Join-Path $DiretorioScript 'Daikit.Instalador.Manifesto.res'
 $BDS = 'C:\Program Files (x86)\Embarcadero\Studio\23.0'
 $MSBuild = 'C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe'
 $BRCC32 = Join-Path $BDS 'bin\brcc32.exe'
@@ -25,6 +29,22 @@ function Compilar-Projeto([string]$Projeto, [string]$Plataforma, [string]$Config
   & $MSBuild $Projeto '/t:Build' "/p:Platform=$Plataforma" "/p:Config=$Configuracao" '/nologo' '/verbosity:minimal'
   if ($LASTEXITCODE -ne 0) {
     throw "Falha ao compilar $Projeto para $Plataforma."
+  }
+}
+
+function Compilar-Instalador([string]$Projeto, [string]$VersaoInstalador) {
+  $PartesVersao = $VersaoInstalador.Split('.')
+  $ParametrosVersao = @(
+    "/p:VerInfo_MajorVer=$($PartesVersao[0])",
+    "/p:VerInfo_MinorVer=$($PartesVersao[1])",
+    "/p:VerInfo_Release=$($PartesVersao[2])",
+    '/p:VerInfo_Build=0'
+  )
+
+  & $MSBuild $Projeto '/t:Build' '/p:Platform=Win32' '/p:Config=Release' `
+    @ParametrosVersao '/nologo' '/verbosity:minimal'
+  if ($LASTEXITCODE -ne 0) {
+    throw "Falha ao compilar o instalador Daikit $VersaoInstalador."
   }
 }
 
@@ -81,11 +101,15 @@ Remove-Item -LiteralPath $DiretorioEstagio -Recurse -Force
 
 Push-Location $DiretorioScript
 try {
+  & $BRCC32 '-foDaikit.Instalador.Manifesto.res' 'Daikit.Instalador.Manifesto.rc'
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Falha ao compilar o manifesto do instalador.'
+  }
   & $BRCC32 '-foDaikit.Instalador.Payload.res' 'Daikit.Instalador.Payload.rc'
   if ($LASTEXITCODE -ne 0) {
     throw 'Falha ao incorporar o payload do instalador.'
   }
-  Compilar-Projeto (Join-Path $DiretorioScript 'Daikit.Instalador.dproj') 'Win32' 'Release'
+  Compilar-Instalador (Join-Path $DiretorioScript 'Daikit.Instalador.dproj') $Versao
 }
 finally {
   Pop-Location
@@ -93,3 +117,4 @@ finally {
 
 Write-Host 'Instalador autocontido criado em:'
 Write-Host (Join-Path $DiretorioScript 'bin\Win32\Daikit.Instalador.exe')
+Write-Host "Versao: $Versao"

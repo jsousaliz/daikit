@@ -35,4 +35,5 @@ plan/
 # Payload gerado do instalador
 tools/instalador/payload/
 tools/instalador/Daikit.Instalador.Payload.res
+tools/instalador/Daikit.Instalador.Manifesto.res
 tools/instalador/Daikit.Instalador.res

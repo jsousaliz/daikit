@@ -3,9 +3,12 @@ program DaikitInstalador;
 uses
   Vcl.Forms,
   Daikit.Instalador.Principal in 'Daikit.Instalador.Principal.pas' {FormInstalador},
-  Daikit.Instalador.Servico in 'Daikit.Instalador.Servico.pas';
+  Daikit.Instalador.Servico in 'Daikit.Instalador.Servico.pas',
+  Daikit.Instalador.Informacoes in 'Daikit.Instalador.Informacoes.pas';
 
 {$R 'Daikit.Instalador.Payload.res'}
+{$R 'Daikit.Instalador.Manifesto.res'}
+{$R 'Daikit.Instalador.res'}
 {$R '..\..\src\design\branding\Daikit.Icone.res'}
 
 begin
