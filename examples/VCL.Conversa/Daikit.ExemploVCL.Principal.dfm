@@ -187,11 +187,11 @@ object FormPrincipal: TFormPrincipal
     Top = 168
   end
   object ProvedorAnthropic: TProvedorAnthropic
-    Left = 432
+    Left = 328
     Top = 168
   end
   object ProvedorGemini: TProvedorGemini
-    Left = 320
+    Left = 432
     Top = 168
   end
   object ConversaIA: TConversaIA
@@ -218,7 +218,7 @@ object FormPrincipal: TFormPrincipal
   end
   object DataSourceLog: TDataSource
     DataSet = ClientDataSetLog
-    Left = 312
+    Left = 344
     Top = 472
   end
 end

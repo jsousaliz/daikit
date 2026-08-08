@@ -65,7 +65,7 @@ jobs:
           }
 
           if ('${{ inputs.modo_notas }}' -eq 'arquivo') {
-            $arquivoNotas = "documentacao\notas-de-versao\$env:TAG.md"
+            $arquivoNotas = "docs\notas-de-versao\$env:TAG.md"
             if (-not (Test-Path -LiteralPath $arquivoNotas -PathType Leaf)) {
               throw "Arquivo de notas nao encontrado: $arquivoNotas"
             }
@@ -167,7 +167,7 @@ jobs:
           )
 
           if ('${{ inputs.modo_notas }}' -eq 'arquivo') {
-            $argumentos += @('--notes-file', "documentacao\notas-de-versao\$env:TAG.md")
+            $argumentos += @('--notes-file', "docs\notas-de-versao\$env:TAG.md")
           }
           else {
             $argumentos += '--generate-notes'

@@ -11,7 +11,7 @@ O nome **Daikit** combina **D**, de Delphi, **AI**, de *Artificial Intelligence*
 Uma aplicação utiliza os componentes centrais do Daikit, escolhe um provedor e conversa com sua API sem precisar conhecer os contratos específicos de cada serviço.
 
 <p align="center">
-  <img src="documentacao/imagens/arquitetura-daikit.png" alt="Visão simplificada da arquitetura do Daikit" width="600">
+  <img src="docs/imagens/arquitetura-daikit.png" alt="Visão simplificada da arquitetura do Daikit" width="600">
 </p>
 
 ## Funcionalidades atuais
@@ -40,7 +40,7 @@ Uma aplicação utiliza os componentes centrais do Daikit, escolhe um provedor e
 Os cinco componentes aparecem na página **Daikit** da Tool Palette. O registro dos componentes não acessa a rede nem lê credenciais.
 
 <p align="center">
-  <img src="documentacao/imagens/pallete-daikit.png" alt="Componentes do Daikit na Tool Palette do Delphi">
+  <img src="docs/imagens/pallete-daikit.png" alt="Componentes do Daikit na Tool Palette do Delphi">
 </p>
 
 ## Requisitos
@@ -216,7 +216,7 @@ Abra [Daikit.ExemploVCL.dproj](examples/VCL.Conversa/Daikit.ExemploVCL.dproj). O
 - Consumo e exibição dos logs em um `TDBGrid`.
 
 <p align="center">
-  <img src="documentacao/imagens/exemplo-daikit.png" alt="Aplicação VCL de exemplo do Daikit">
+  <img src="docs/imagens/exemplo-daikit.png" alt="Aplicação VCL de exemplo do Daikit">
 </p>
 
 ## Testes
