@@ -6,6 +6,16 @@ O projeto usa somente recursos nativos do Delphi, sem componentes de terceiros, 
 
 O nome **Daikit** combina **D**, de Delphi, **AI**, de *Artificial Intelligence*, e **Kit**, por reunir em uma única suíte os componentes necessários para integrar aplicações Delphi a diferentes serviços de inteligência artificial.
 
+## Vídeos
+
+Acompanhe a série de vídeos do Daikit no YouTube:
+
+- [Playlist Daikit — Inteligência Artificial com Delphi](https://www.youtube.com/watch?v=PG1d8enP1F0&list=PLJQiqZc-swOI)
+
+### Episódios
+
+1. [Introdução ao Daikit](https://www.youtube.com/watch?v=PG1d8enP1F0&list=PLJQiqZc-swOI) — apresentação dos componentes e demonstração da aplicação VCL.
+
 ## Visão rápida
 
 Uma aplicação utiliza os componentes centrais do Daikit, escolhe um provedor e conversa com sua API sem precisar conhecer os contratos específicos de cada serviço.
